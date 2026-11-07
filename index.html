@@ -231,7 +231,7 @@
             <div class="flex items-center space-x-2">
                 <i class="fa-regular fa-calendar-days text-tealish-700 text-base"></i>
                 <span>Fecha del Reporte:</span>
-                <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-0.5 rounded" value="2026-11-05" onchange="updateCalculations()">
+                <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-0.5 rounded" onchange="updateCalculations()">
             </div>
             <div class="flex items-center space-x-2 border-l border-gray-300 pl-4">
                 <i class="fa-solid fa-user-doctor text-tealish-700 text-base"></i>
@@ -251,7 +251,7 @@
                             <th class="py-2.5 px-2 border-r border-tealish-600 text-left w-[24%]">SERVICIOS</th>
                             <th class="py-2.5 px-1 border-r border-tealish-600 w-[12%] text-[10px] leading-tight">DOTACIÓN DE CAMAS</th>
                             <th class="py-2.5 px-1 border-r border-tealish-600 w-[13%] text-[10px] leading-tight">TOTAL PACIENTES</th>
-                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[19%] text-[10px] leading-tight">% OCUPACIÓN DE CAMA</th>
+                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[19%] text-[10px] leading-tight">% OCUPACIÓN DE CAMAS</th>
                             <th class="py-2.5 px-1 border-r border-tealish-600 w-[13%] text-[10px] leading-tight">CAMAS DISPONIBLES</th>
                             <th class="py-1 px-1 w-[19%]" colspan="2">
                                 <div class="border-b border-tealish-600 pb-0.5 mb-0.5 font-bold text-[9px] tracking-wider text-teal-100">CAMAS <span class="text-[8px] font-normal opacity-90">(HOMBRES / MUJER)</span></div>
@@ -318,7 +318,7 @@
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                     <div class="absolute top-0 right-0 w-16 h-16 bg-tealish-700/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
                     <div class="flex justify-between items-start mb-1">
-                        <h4 class="text-[12px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
+                        <h4 class="text-[13px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
                         <i class="fa-solid fa-chart-pie text-tealish-700/40 text-sm"></i>
                     </div>
                     <div class="flex items-baseline justify-between mb-1">
@@ -332,7 +332,7 @@
                         </div>
                     </div>
                     <p id="kpiOcupacionSubtext" class="text-[11px] font-medium text-slate-500 leading-tight">
-                        10 pacientes ocupando de 15 camas
+                        10 pacientes ocupando 15 camas
                     </p>
                 </div>
 
@@ -340,7 +340,7 @@
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                     <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
                     <div class="flex justify-between items-start mb-1">
-                        <h4 class="text-[12px] font-bold text-slate-500 tracking-wider uppercase">CAMAS LIBRES</h4>
+                        <h4 class="text-[13px] font-bold text-slate-500 tracking-wider uppercase">CAMAS LIBRES</h4>
                         <i class="fa-solid fa-bed text-emerald-600/40 text-sm"></i>
                     </div>
                     <div class="flex items-baseline gap-2 mb-1">
@@ -542,7 +542,7 @@
             // Update Summary KPI Cards
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
-            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando de ${totalDot}  camas`;
+            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando de ${totalDot} camas`;
             document.getElementById('kpiCamasLibres').innerText = totalDisp;
 
             // Update Dynamic Overcapacity Alert Box
@@ -591,6 +591,10 @@
 
         // Initial launch on window load
         window.onload = function() {
+            // Set current date automatically (YYYY-MM-DD)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('reportDate').value = today;
+
             renderTable();
         };
     </script>
