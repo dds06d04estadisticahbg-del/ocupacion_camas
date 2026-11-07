@@ -316,41 +316,52 @@
 
                 <!-- KPI Card 1: Ocupación General -->
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-16 h-16 bg-tealish-700/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
                     <div class="flex justify-between items-start mb-1">
-                        <h4 class="text-[13px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
-                        <i class="fa-solid fa-chart-pie text-tealish-700/40 text-sm"></i>
-                    </div>
-                    <div class="flex items-baseline justify-between mb-1">
-                        <div id="kpiOcupacionGeneral" class="text-2xl font-black text-slate-800 tracking-tight">
-                            66,67%
+                        <div>
+                            <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
+                            <div class="flex items-baseline gap-2 mt-0.5">
+                                <span id="kpiOcupacionGeneral" class="text-2xl font-black text-slate-800 tracking-tight">66,67%</span>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <span id="kpiPorcentajeLibre" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs">
-                                <i class="fa-solid fa-circle-check text-xs"></i> 33,33% Libre
-                            </span>
-                        </div>
+                        <span id="kpiPorcentajeLibre" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-extrabold shadow-xs">
+                            <i class="fa-solid fa-circle-check text-xs"></i> 33,33% Libre
+                        </span>
                     </div>
-                    <p id="kpiOcupacionSubtext" class="text-[11px] font-medium text-slate-500 leading-tight">
-                        10 pacientes ocupando 15 camas
-                    </p>
                 </div>
 
-                <!-- KPI Card 2: Camas Libres -->
+                <!-- KPI Card 2: Camas Libres y Ocupadas -->
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                     <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
-                    <div class="flex justify-between items-start mb-1">
-                        <h4 class="text-[13px] font-bold text-slate-500 tracking-wider uppercase">CAMAS LIBRES</h4>
-                        <i class="fa-solid fa-bed text-emerald-600/40 text-sm"></i>
-                    </div>
-                    <div class="flex items-baseline gap-2 mb-1">
-                        <div id="kpiCamasLibres" class="text-2xl font-black text-slate-800 tracking-tight">
-                            5
+                    
+                    <div class="grid grid-cols-2 gap-3 divide-x divide-slate-200">
+                        <!-- Camas Libres -->
+                        <div class="pr-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">CAMAS LIBRES</h4>
+                                <i class="fa-solid fa-bed text-emerald-600/40 text-xs"></i>
+                            </div>
+                            <div id="kpiCamasLibres" class="text-2xl font-black text-slate-800 tracking-tight">
+                                5
+                            </div>
+                            <p class="text-[10px] font-semibold text-emerald-600 leading-tight mt-0.5">
+                                Disponibles
+                            </p>
+                        </div>
+
+                        <!-- Camas Ocupadas -->
+                        <div class="pl-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">CAMAS OCUPADAS</h4>
+                                <i class="fa-solid fa-user-bed text-tealish-700/40 text-xs"></i>
+                            </div>
+                            <div id="kpiCamasOcupadas" class="text-2xl font-black text-slate-800 tracking-tight">
+                                10
+                            </div>
+                            <p id="kpiTotalDotacionSubtext" class="text-[10px] font-semibold text-slate-500 leading-tight mt-0.5">
+                                de 15 dotadas
+                            </p>
                         </div>
                     </div>
-                    <p class="text-[11px] font-medium text-slate-500 leading-tight">
-                        Capacidad disponible global
-                    </p>
                 </div>
 
                 <!-- KPI Card 3: Dynamic Overcapacity Alert -->
@@ -542,59 +553,60 @@
             // Update Summary KPI Cards
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
-            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando de ${totalDot} camas`;
+            
+            // Dual Metric Card: Camas Libres + Camas Ocupadas
             document.getElementById('kpiCamasLibres').innerText = totalDisp;
+            document.getElementById('kpiCamasOcupadas').innerText = totalPac;
+            document.getElementById('kpiTotalDotacionSubtext').innerText = `de ${totalDot} dotadas`;
 
             // Update Dynamic Overcapacity Alert Box
             const alertCard = document.getElementById('kpiAlertCard');
             const alertMsg = document.getElementById('kpiAlertMessage');
 
             if (overcapacityAlerts.length > 0) {
-                alertCard.className = "p-4 rounded-xl border-l-4 border-red-600 bg-red-50 text-red-900 shadow-xs transition-all";
-                alertCard.querySelector('div').className = "flex items-center gap-2 font-bold text-sm text-red-800 mb-1";
-                alertCard.querySelector('div span:last-child').innerText = "Alerta de Sobrecupo";
-                alertMsg.innerHTML = overcapacityAlerts.join('<br><br>');
+                alertCard.className = "p-3.5 rounded-xl border-l-4 border-red-500 bg-gradient-to-r from-red-50/90 to-red-50/40 text-red-950 shadow-sm transition-all relative overflow-hidden block";
+                alertMsg.innerHTML = overcapacityAlerts.join('<br class="my-1"/>');
             } else {
-                // Normal state if no overcapacity exists
-                alertCard.className = "p-4 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 text-emerald-900 shadow-xs transition-all";
-                alertCard.querySelector('div').className = "flex items-center gap-2 font-bold text-sm text-emerald-800 mb-1";
-                alertCard.querySelector('div span:last-child').innerText = "Estado Normal";
-                alertMsg.innerText = "Todos los servicios se encuentran operando dentro de la capacidad asignada.";
+                alertCard.className = "p-3.5 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50/90 to-emerald-50/40 text-emerald-950 shadow-sm transition-all relative overflow-hidden block";
+                alertMsg.innerHTML = '<span class="text-emerald-700 font-semibold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Todos los servicios operan dentro del límite de capacidad.</span>';
             }
         }
 
-        // Reset to initial values
+        // Restablecer valores iniciales por defecto
         function resetDefaultValues() {
             servicesData[0] = { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 };
             servicesData[1] = { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 };
             servicesData[2] = { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 0, disponibles: 2, hombres: 0, mujeres: 0 };
             servicesData[3] = { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 };
+            
+            document.getElementById('observations').value = '';
             renderTable();
         }
 
-        // Export PDF helper function - Downloads PDF automatically
+        // Exportar a PDF usando html2pdf.js
         function exportToPDF() {
             const element = document.getElementById('report-content');
-            const dateVal = document.getElementById('reportDate').value || 'reporte';
+            const dateStr = document.getElementById('reportDate').value || 'reporte';
             
             const opt = {
                 margin:       [0.3, 0.3, 0.3, 0.3],
-                filename:     `Reporte_Ocupacion_Camas_${dateVal}.pdf`,
+                filename:     `Reporte_Ocupacion_Camas_${dateStr}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, logging: false },
-                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
             };
 
-            // Trigger direct PDF download
+            // Ocultar elementos marcados como no-print temporalmente si es necesario
             html2pdf().set(opt).from(element).save();
         }
 
-        // Initial launch on window load
+        // Inicialización al cargar la página
         window.onload = function() {
-            // Set current date automatically (YYYY-MM-DD)
+            // Asignar fecha actual por defecto en formato YYYY-MM-DD
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('reportDate').value = today;
-
+            
+            // Renderizar la tabla y cálculos iniciales
             renderTable();
         };
     </script>
