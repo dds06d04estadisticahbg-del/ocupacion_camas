@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOSPITAL BÁSICO DE GUAMOTE - Ocupación de Camas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js & Datalabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- html2pdf.js Library for Automatic PDF Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            800: '#2A3C4D',
+                            900: '#1E2B38',
+                        },
+                        tealish: {
+                            600: '#5A8696',
+                            700: '#4A7282',
+                            800: '#385764',
+                        },
+                        amberGold: '#C28E0E',
+                        alertRed: '#DC2626',
+                        bgLight: '#EAF0F3',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #EBF1F5;
+            font-family: 'Inter', sans-serif;
+            color: #2D3748;
+        }
+
+        /* Styling matching the provided image */
+        .header-banner {
+            background-color: #2D3E4E;
+            color: white;
+            border-radius: 6px;
+        }
+
+        .header-sub-banner {
+            background-color: #385764;
+            color: white;
+            border-radius: 6px;
+        }
+
+        .table-header {
+            background-color: #5B8898;
+            color: white;
+        }
+
+        .table-row-even {
+            background-color: #F8FAFC;
+        }
+
+        .table-row-odd {
+            background-color: #EDF2F7;
+        }
+
+        .table-footer {
+            background-color: #385764;
+            color: white;
+        }
+
+        /* Custom Input Styling */
+        input.editable-input {
+            background-color: #FFFFFF;
+            border: 1px solid #CBD5E0;
+            border-radius: 6px;
+            padding: 4px 8px;
+            width: 100%;
+            text-align: center;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+        input.editable-input:focus {
+            outline: none;
+            border-color: #385764;
+            box-shadow: 0 0 0 2px rgba(56, 87, 100, 0.2);
+            background-color: #FFFFF0;
+        }
+
+        /* Gender specific input styling matching the attached image */
+        input.input-hombres {
+            background-color: #E0F2FE;
+            border: 1px solid #BAE6FD;
+            color: #0369A1;
+        }
+        input.input-hombres:focus {
+            background-color: #F0F9FF;
+            border-color: #0284C7;
+        }
+
+        input.input-mujeres {
+            background-color: #F3E8FF;
+            border: 1px solid #E9D5FF;
+            color: #6B21A8;
+        }
+        input.input-mujeres:focus {
+            background-color: #FAF5FF;
+            border-color: #9333EA;
+        }
+
+        /* Progress bar semaphores matching image style */
+        .progress-container {
+            background-color: #E2E8F0;
+            border-radius: 9999px;
+            position: relative;
+            height: 28px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #CBD5E1;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+        input.editable-input:focus {
+            outline: none;
+            border-color: #385764;
+            box-shadow: 0 0 0 2px rgba(56, 87, 100, 0.2);
+            background-color: #FFFFF0;
+        }
+
+        /* Progress bar semaphores */
+        .progress-container {
+            background-color: #E2E8F0;
+            border-radius: 9999px;
+            position: relative;
+            height: 26px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-bar {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            transition: width 0.4s ease, background-color 0.4s ease;
+            border-radius: 9999px;
+        }
+
+        /* Print formatting */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+            .page-break {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen">
+
+    <!-- Top Action Toolbar (No Print) -->
+    <div class="max-w-7xl mx-auto mb-4 flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-sm no-print gap-3">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid me-1 fa-hospital text-tealish-700 text-2xl"></i>
+            <div>
+                <h1 class="font-bold text-gray-800 text-lg leading-tight">Sistema de Control Hospitalario</h1>
+                <p class="text-xs text-gray-500">Gestión Diaria de Ocupación de Camas</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap items-center gap-3">
+            <button onclick="resetDefaultValues()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition flex items-center">
+                <i class="fa-solid fa-rotate-left mr-2"></i> Restablecer Datos
+            </button>
+            <button onclick="window.print()" class="px-4 py-2 bg-tealish-700 hover:bg-tealish-800 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-print mr-2"></i> Imprimir Reporte
+            </button>
+            <button onclick="exportToPDF()" class="px-4 py-2 bg-navy-800 hover:bg-navy-900 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-file-pdf mr-2"></i> Guardar como PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Printable Container -->
+    <div id="report-content" class="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-xl print-container border border-gray-200">
+        
+        <!-- Header Section matching template image -->
+        <div class="mb-4 text-center">
+            <!-- Title Bar 1 -->
+            <div class="header-banner py-2.5 px-4 shadow-sm mb-1.5 flex justify-between items-center relative">
+                <div class="w-12 text-left hidden sm:block">
+                    <i class="fa-solid fa-notes-medical text-2xl text-teal-300 opacity-80"></i>
+                </div>
+                <h1 class="text-xl md:text-2xl font-extrabold tracking-wider uppercase text-center flex-1">
+                    HOSPITAL BÁSICO DE GUAMOTE
+                </h1>
+                <div class="w-12 text-right hidden sm:block">
+                    <i class="fa-solid fa-stethoscope text-2xl text-teal-300 opacity-80"></i>
+                </div>
+            </div>
+
+            <!-- Date Picker / Metadata Bar -->
+        <div class="mt-2 flex flex-wrap justify-center items-center gap-4 text-sm font-semibold text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-200 mb-4">
+            <div class="flex items-center space-x-2">
+                <i class="fa-regular fa-calendar-days text-tealish-700 text-base"></i>
+                <span>Fecha del Reporte:</span>
+                <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-0.5 rounded" value="2026-11-05" onchange="updateCalculations()">
+            </div>
+            <div class="flex items-center space-x-2 border-l border-gray-300 pl-4">
+                <i class="fa-solid fa-user-doctor text-tealish-700 text-base"></i>
+                <span>Responsable:</span>
+                <input type="text" id="reportResponsible" class="editable-input w-48 text-left font-normal text-xs py-1" value="Dr. M. Villacrés - Lider de Guardia" placeholder="Nombre del responsable">
+            </div>
+        </div>
+
+        <!-- Main Layout: Grid 12 Cols (8 Cols for Table, 4 Cols for Summary Panel) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            
+            <!-- Left Side: Table & Inputs (8 Cols) -->
+            <div class="lg:col-span-8 overflow-x-auto">
+                <table class="w-full text-center border-collapse rounded-xl overflow-hidden shadow-sm border border-gray-300 table-fixed">
+                    <thead>
+                        <tr class="table-header text-[11px] uppercase font-bold tracking-wider">
+                            <th class="py-2.5 px-2 border-r border-tealish-600 text-left w-[24%]">SERVICIOS</th>
+                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[12%] text-[10px] leading-tight">DOTACIÓN DE CAMAS</th>
+                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[13%] text-[10px] leading-tight">TOTAL PACIENTES</th>
+                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[19%] text-[10px] leading-tight">PORCENTAJE %</th>
+                            <th class="py-2.5 px-1 border-r border-tealish-600 w-[13%] text-[10px] leading-tight">CAMAS DISPONIBLES</th>
+                            <th class="py-1 px-1 w-[19%]" colspan="2">
+                                <div class="border-b border-tealish-600 pb-0.5 mb-0.5 font-bold text-[9px] tracking-wider text-teal-100">CAMAS <span class="text-[8px] font-normal opacity-90">(HOMBRES / MUJER)</span></div>
+                                <div class="grid grid-cols-2 gap-0.5 text-[9px] uppercase font-bold">
+                                    <span>HOMBRES</span>
+                                    <span>MUJER</span>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="servicesTableBody" class="text-xs font-semibold text-gray-800">
+                        <!-- Table rows generated dynamically by JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-footer text-xs font-extrabold uppercase">
+                            <td class="py-2.5 px-2 text-left border-r border-tealish-700">TOTAL</td>
+                            <td id="totalDotacion" class="py-2.5 px-1 border-r border-tealish-700 text-sm">15</td>
+                            <td id="totalPacientes" class="py-2.5 px-1 border-r border-tealish-700 text-sm">10</td>
+                            <td id="totalPorcentaje" class="py-2.5 px-1 border-r border-tealish-700 text-sm">66.67%</td>
+                            <td id="totalDisponibles" class="py-2.5 px-1 border-r border-tealish-700 text-sm text-center">5</td>
+                            <td id="totalHombres" class="py-2.5 px-1 border-r border-tealish-700 text-sm w-[9.5%] text-sky-200">5</td>
+                            <td id="totalMujeres" class="py-2.5 px-1 text-sm w-[9.5%] text-purple-200">5</td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <!-- Observations Box -->
+                <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs">
+                    <label class="block font-bold text-gray-700 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-comment-medical text-tealish-700"></i> Observaciones Novedades del Día:
+                    </label>
+                    <textarea id="observations" rows="2" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-tealish-700 focus:outline-none text-gray-700 text-xs" placeholder="Escriba aquí observaciones de cambios de turnos, ingresos especiales o sobrecupos..."></textarea>
+                </div>
+
+                <!-- Color Semaphore Legend -->
+                <div class="mt-2.5 flex flex-wrap items-center justify-around text-[10px] text-gray-600 bg-gray-100 p-2 rounded-lg border border-gray-200">
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+                        <span>Baja Ocupación (&lt; 40%)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+                        <span>Normal (40% - 100%)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block"></span>
+                        <span>Sobrecupo (&gt; 100%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: REPORTE RESUMIDO Side Panel (4 Cols - Reduced Size) -->
+            <div class="lg:col-span-4 space-y-3">
+                <!-- Panel Title Header -->
+                <div class="flex items-center justify-between pb-2 border-b-2 border-tealish-700/30">
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-4 bg-tealish-700 rounded-full"></div>
+                        <h3 class="font-extrabold text-gray-800 text-xs tracking-wider uppercase">REPORTE RESUMIDO</h3>
+                    </div>
+                    <span class="text-[10px] font-semibold text-tealish-800 bg-tealish-700/10 px-2 py-0.5 rounded-full">En tiempo real</span>
+                </div>
+
+                <!-- KPI Card 1: Ocupación General -->
+                <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-tealish-700/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
+                        <i class="fa-solid fa-chart-pie text-tealish-700/40 text-sm"></i>
+                    </div>
+                    <div class="flex items-baseline justify-between mb-1">
+                        <div id="kpiOcupacionGeneral" class="text-2xl font-black text-slate-800 tracking-tight">
+                            66,67%
+                        </div>
+                        <div class="text-right">
+                            <span id="kpiPorcentajeLibre" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs">
+                                <i class="fa-solid fa-circle-check text-xs"></i> 33,33% Libre
+                            </span>
+                        </div>
+                    </div>
+                    <p id="kpiOcupacionSubtext" class="text-[11px] font-medium text-slate-500 leading-tight">
+                        10 pacientes ocupando 15 camas
+                    </p>
+                </div>
+
+                <!-- KPI Card 2: Camas Libres -->
+                <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+                    <div class="flex justify-between items-start mb-1">
+                        <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">CAMAS LIBRES</h4>
+                        <i class="fa-solid fa-bed text-emerald-600/40 text-sm"></i>
+                    </div>
+                    <div class="flex items-baseline gap-2 mb-1">
+                        <div id="kpiCamasLibres" class="text-2xl font-black text-slate-800 tracking-tight">
+                            5
+                        </div>
+                    </div>
+                    <p class="text-[11px] font-medium text-slate-500 leading-tight">
+                        Capacidad disponible global
+                    </p>
+                </div>
+
+                <!-- KPI Card 3: Dynamic Overcapacity Alert -->
+                <div id="kpiAlertCard" class="p-3.5 rounded-xl border-l-4 border-red-500 bg-gradient-to-r from-red-50/90 to-red-50/40 text-red-950 shadow-sm transition-all relative overflow-hidden">
+                    <div class="flex items-center gap-2 font-bold text-xs text-red-800 mb-1.5">
+                        <div class="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center text-red-600 text-xs shadow-xs">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <span>Alerta de Sobrecupo</span>
+                    </div>
+                    <div id="kpiAlertMessage" class="text-[11px] leading-relaxed font-medium text-red-800/90 bg-white/60 p-2 rounded-lg border border-red-100">
+                        Cirugía General reporta 150,00% de ocupación (3 pacientes para 2 camas asignadas).
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer Signature / Timestamp for Print -->
+        <div class="mt-6 pt-4 border-t border-gray-300 flex justify-between items-center text-[10px] text-gray-500">
+            <div>Generado de forma automática por el Sistema de Gestión de Ocupación de Camas Hospitalarias</div>
+            <div>Hospital Básico de Guamote &copy; 2026</div>
+        </div>
+    </div>
+
+    <!-- JavaScript logic -->
+    <script>
+        // Initial state data based on provided image
+        const servicesData = [
+            { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 4, disponibles: 1, hombres: 0, mujeres: 4 },
+            { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 2, disponibles: 2, hombres: 2, mujeres: 0 },
+            { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 3, disponibles: 0, hombres: 2, mujeres: 1 },
+            { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 1, disponibles: 2, hombres: 1, mujeres: 0 }
+        ];
+
+        // Render Table Rows
+        function renderTable() {
+            const tbody = document.getElementById('servicesTableBody');
+            tbody.innerHTML = '';
+
+            servicesData.forEach((item, index) => {
+                const rowClass = index % 2 === 0 ? 'table-row-even' : 'table-row-odd';
+                const percentage = item.dotacion > 0 ? ((item.pacientes / item.dotacion) * 100).toFixed(2) : '0.00';
+                const percentageNum = parseFloat(percentage);
+                
+                // Alert check
+                const isOverCap = percentageNum > 100;
+
+                // Validation check 1: hombres + mujeres should not exceed total pacientes
+                const sumGender = item.hombres + item.mujeres;
+                const isGenderMismatch = sumGender > item.pacientes;
+
+                // Validation check 2: disponibles + pacientes should not exceed dotacion de camas
+                const sumCapacity = item.disponibles + item.pacientes;
+                const isCapacityMismatch = sumCapacity > item.dotacion;
+
+                const hasError = isGenderMismatch || isCapacityMismatch;
+                const genderErrorClass = isGenderMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
+                const capacityErrorClass = isCapacityMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
+                
+                // Color bar calculation with softer pastel colors matching the user sample image
+                let progressBg = '#EAB308'; // Soft Golden Amber for Normal (40-100%)
+                let textContrastClass = 'text-slate-900';
+                
+                if (isOverCap) {
+                    progressBg = '#EF4444'; // Soft Rose/Red for Overcapacity
+                    textContrastClass = 'text-white';
+                } else if (percentageNum < 40) {
+                    progressBg = '#4ADE80'; // Soft Emerald Green for Low Capacity
+                    textContrastClass = 'text-slate-900';
+                }
+
+                // Available Beds Icon logic (Check vs Minus/Alert)
+                let availableIconHtml = '';
+                if (isCapacityMismatch) {
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs mr-1.5" title="Error de capacidad"><i class="fa-solid fa-triangle-exclamation"></i></span>`;
+                } else if (item.disponibles > 0) {
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 text-xs mr-1.5"><i class="fa-solid fa-check"></i></span>`;
+                } else {
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-100 text-rose-500 text-xs mr-1.5"><i class="fa-solid fa-minus"></i></span>`;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = `${rowClass} border-b border-gray-200 transition hover:bg-slate-100 ${hasError ? 'bg-red-50/50' : ''}`;
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-left font-bold text-gray-700 border-r border-gray-300">
+                        ${item.name}
+                        ${isGenderMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hombres + Mujeres ('+sumGender+') supera Total Pacientes ('+item.pacientes+')</div>' : ''}
+                        ${isCapacityMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Pacientes + Disponibles ('+sumCapacity+') supera Dotación ('+item.dotacion+')</div>' : ''}
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-gray-300 font-semibold text-gray-700 bg-gray-100/50">${item.dotacion}</td>
+                    <td class="py-2.5 px-2 border-r border-gray-300">
+                        <input type="number" min="0" value="${item.pacientes}" 
+                            onchange="updateValue(${index}, 'pacientes', this.value)"
+                            class="editable-input text-gray-900 ${isCapacityMismatch ? '!border-red-500 !bg-red-50' : ''}" />
+                    </td>
+                    <td class="py-2.5 px-3 border-r border-gray-300">
+                        <div class="progress-container">
+                            <div class="progress-bar" style="width: ${Math.min(percentageNum, 100)}%; background-color: ${progressBg}; opacity: 0.85;"></div>
+                            <span class="relative z-10 font-extrabold ${textContrastClass} text-xs flex items-center justify-center gap-1">
+                                ${percentage.replace('.', ',')}% ${isOverCap ? '<i class="fa-solid fa-triangle-exclamation text-white animate-pulse"></i>' : ''}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-gray-300">
+                        <div class="flex items-center justify-center font-bold text-gray-800">
+                            ${availableIconHtml}
+                            <input type="number" min="0" value="${item.disponibles}" 
+                                onchange="updateValue(${index}, 'disponibles', this.value)"
+                                class="editable-input w-12 text-center text-gray-800 border-0 bg-transparent ${capacityErrorClass}" 
+                                title="${isCapacityMismatch ? 'La suma de Disponibles + Pacientes supera la Dotación de Camas' : ''}" />
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-2 border-r border-gray-300">
+                        <input type="number" min="0" value="${item.hombres}" 
+                            onchange="updateValue(${index}, 'hombres', this.value)"
+                            class="editable-input input-hombres ${genderErrorClass}" title="${isGenderMismatch ? 'La suma excede el total de pacientes' : ''}" />
+                    </td>
+                    <td class="py-2.5 px-2">
+                        <input type="number" min="0" value="${item.mujeres}" 
+                            onchange="updateValue(${index}, 'mujeres', this.value)"
+                            class="editable-input input-mujeres ${genderErrorClass}" title="${isGenderMismatch ? 'La suma excede el total de pacientes' : ''}" />
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateCalculations();
+        }
+
+        // Handle live updates with validation feedback
+        function updateValue(index, field, value) {
+            const val = parseInt(value) || 0;
+            const updatedVal = val < 0 ? 0 : val;
+            servicesData[index][field] = updatedVal;
+
+            renderTable();
+        }
+
+        // Calculate Totals & Percentages and update KPI cards
+        function updateCalculations() {
+            let totalDot = 0;
+            let totalPac = 0;
+            let totalDisp = 0;
+            let totalH = 0;
+            let totalM = 0;
+
+            const overcapacityAlerts = [];
+
+            servicesData.forEach(item => {
+                totalDot += item.dotacion;
+                totalPac += item.pacientes;
+                totalDisp += item.disponibles;
+                totalH += item.hombres;
+                totalM += item.mujeres;
+
+                // Check overcapacity per service
+                if (item.dotacion > 0 && item.pacientes > item.dotacion) {
+                    const perc = ((item.pacientes / item.dotacion) * 100).toFixed(2).replace('.', ',');
+                    // Capitalize service name cleanly (e.g. Cirugía General)
+                    const formattedName = item.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+                    overcapacityAlerts.push(`${formattedName} reporta ${perc}% de ocupación (${item.pacientes} pacientes para ${item.dotacion} camas asignadas).`);
+                }
+            });
+
+            const totalPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : '0.00';
+            const totalPercFormatted = totalPerc.replace('.', ',');
+
+            // Calculate free percentage based on total dotation
+            const freePercNum = totalDot > 0 ? Math.max(0, ((totalDisp / totalDot) * 100)).toFixed(2) : '0.00';
+            const freePercFormatted = freePercNum.replace('.', ',');
+
+            // Table Footers
+            document.getElementById('totalDotacion').innerText = totalDot;
+            document.getElementById('totalPacientes').innerText = totalPac;
+            document.getElementById('totalPorcentaje').innerText = `${totalPercFormatted}%`;
+            document.getElementById('totalDisponibles').innerText = totalDisp;
+            document.getElementById('totalHombres').innerText = totalH;
+            document.getElementById('totalMujeres').innerText = totalM;
+
+            // Highlight percentage total if global overcapacity
+            const percCell = document.getElementById('totalPorcentaje');
+            if (parseFloat(totalPerc) > 100) {
+                percCell.classList.add('bg-red-700', 'text-white');
+            } else {
+                percCell.classList.remove('bg-red-700', 'text-white');
+            }
+
+            // Update Summary KPI Cards
+            document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
+            document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
+            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando ${totalDot} camas`;
+            document.getElementById('kpiCamasLibres').innerText = totalDisp;
+
+            // Update Dynamic Overcapacity Alert Box
+            const alertCard = document.getElementById('kpiAlertCard');
+            const alertMsg = document.getElementById('kpiAlertMessage');
+
+            if (overcapacityAlerts.length > 0) {
+                alertCard.className = "p-4 rounded-xl border-l-4 border-red-600 bg-red-50 text-red-900 shadow-xs transition-all";
+                alertCard.querySelector('div').className = "flex items-center gap-2 font-bold text-sm text-red-800 mb-1";
+                alertCard.querySelector('div span:last-child').innerText = "Alerta de Sobrecupo";
+                alertMsg.innerHTML = overcapacityAlerts.join('<br><br>');
+            } else {
+                // Normal state if no overcapacity exists
+                alertCard.className = "p-4 rounded-xl border-l-4 border-emerald-500 bg-emerald-50 text-emerald-900 shadow-xs transition-all";
+                alertCard.querySelector('div').className = "flex items-center gap-2 font-bold text-sm text-emerald-800 mb-1";
+                alertCard.querySelector('div span:last-child').innerText = "Estado Normal";
+                alertMsg.innerText = "Todos los servicios se encuentran operando dentro de la capacidad asignada.";
+            }
+        }
+
+        // Reset to initial values
+        function resetDefaultValues() {
+            servicesData[0] = { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 4, disponibles: 1, hombres: 0, mujeres: 4 };
+            servicesData[1] = { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 2, disponibles: 2, hombres: 2, mujeres: 0 };
+            servicesData[2] = { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 3, disponibles: 0, hombres: 2, mujeres: 1 };
+            servicesData[3] = { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 1, disponibles: 2, hombres: 1, mujeres: 0 };
+            renderTable();
+        }
+
+        // Export PDF helper function - Downloads PDF automatically
+        function exportToPDF() {
+            const element = document.getElementById('report-content');
+            const dateVal = document.getElementById('reportDate').value || 'reporte';
+            
+            const opt = {
+                margin:       [0.3, 0.3, 0.3, 0.3],
+                filename:     `Reporte_Ocupacion_Camas_${dateVal}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+
+            // Trigger direct PDF download
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // Initial launch on window load
+        window.onload = function() {
+            renderTable();
+        };
+    </script>
+</body>
+</html>
