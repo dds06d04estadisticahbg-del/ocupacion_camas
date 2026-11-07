@@ -318,7 +318,7 @@
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                     <div class="absolute top-0 right-0 w-16 h-16 bg-tealish-700/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
                     <div class="flex justify-between items-start mb-1">
-                        <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
+                        <h4 class="text-[8px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
                         <i class="fa-solid fa-chart-pie text-tealish-700/40 text-sm"></i>
                     </div>
                     <div class="flex items-baseline justify-between mb-1">
@@ -380,10 +380,10 @@
     <script>
         // Initial state data based on provided image
         const servicesData = [
-            { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 4, disponibles: 1, hombres: 0, mujeres: 4 },
-            { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 2, disponibles: 2, hombres: 2, mujeres: 0 },
-            { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 3, disponibles: 0, hombres: 2, mujeres: 1 },
-            { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 1, disponibles: 2, hombres: 1, mujeres: 0 }
+            { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 },
+            { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 },
+            { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 0, disponibles: 2, hombres: 0, mujeres: 0 },
+            { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 }
         ];
 
         // Render Table Rows
@@ -542,7 +542,7 @@
             // Update Summary KPI Cards
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
-            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando ${totalDot} de camas`;
+            document.getElementById('kpiOcupacionSubtext').innerText = `${totalPac} pacientes ocupando de ${totalDot}  camas`;
             document.getElementById('kpiCamasLibres').innerText = totalDisp;
 
             // Update Dynamic Overcapacity Alert Box
