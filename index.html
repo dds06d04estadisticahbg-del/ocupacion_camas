@@ -171,6 +171,17 @@
         </div>
     </div>
 
+    <!-- Status Bar for DB Connection -->
+    <div class="max-w-7xl mx-auto mb-2 flex justify-between items-center text-[11px] font-semibold text-slate-500 no-print px-1">
+        <div class="flex items-center gap-1.5">
+            <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-amber-500 inline-block animate-pulse"></span>
+            <span id="dbStatusText">Conectando a Base de Datos IndexedDB...</span>
+        </div>
+        <div id="lastSyncText" class="text-slate-400">
+            Última modificación: <span class="font-bold text-slate-600" id="lastSyncTime">Cargando...</span>
+        </div>
+    </div>
+
     <!-- Top Action Toolbar (No Print) -->
     <div class="max-w-7xl mx-auto mb-4 flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-sm no-print gap-3">
         <div class="flex items-center space-x-3">
@@ -182,11 +193,11 @@
         </div>
         
         <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-            <button onclick="saveCurrentReport()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
-                <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Reporte
+            <button onclick="saveCurrentReport(true)" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Registro
             </button>
             <button onclick="openHistoryModal()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
-                <i class="fa-solid fa-clock-rotate-left mr-2"></i> Consultar Fechas
+                <i class="fa-solid fa-database mr-2"></i> Consultar Base de Datos
             </button>
             <button onclick="resetDefaultValues()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition flex items-center">
                 <i class="fa-solid fa-rotate-left mr-2"></i> Restablecer
@@ -224,13 +235,13 @@
                     <div class="flex items-center space-x-1.5">
                         <i class="fa-regular fa-calendar-days text-tealish-700 text-sm"></i>
                         <span>Fecha:</span>
-                        <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="updateShiftAndCalculations()">
+                        <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="onMetadataChange()">
                     </div>
 
                     <div class="flex items-center space-x-1.5 border-l border-gray-300 pl-3">
                         <i class="fa-regular fa-clock text-tealish-700 text-sm"></i>
                         <span>Hora:</span>
-                        <input type="time" id="reportTime" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="updateShiftAndCalculations()">
+                        <input type="time" id="reportTime" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="onMetadataChange()">
                     </div>
 
                     <div class="flex items-center space-x-1.5 border-l border-gray-300 pl-3">
@@ -244,7 +255,7 @@
                 <div class="flex items-center space-x-2">
                     <i class="fa-solid fa-user-doctor text-tealish-700 text-sm"></i>
                     <span>Responsable:</span>
-                    <input type="text" id="reportResponsible" class="editable-input w-48 text-left font-normal text-xs py-1" value="" placeholder="Nombre del responsable">
+                    <input type="text" id="reportResponsible" class="editable-input w-48 text-left font-normal text-xs py-1" value="" placeholder="Nombre del responsable" oninput="autoSaveDraft()">
                 </div>
             </div>
         </div>
@@ -292,7 +303,7 @@
                     <label class="block font-bold text-gray-700 mb-1 flex items-center gap-1">
                         <i class="fa-solid fa-comment-medical text-tealish-700"></i> Observaciones / Novedades del Día:
                     </label>
-                    <textarea id="observations" rows="2" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-tealish-700 focus:outline-none text-gray-700 text-xs" placeholder="Escriba aquí observaciones de cambios de turnos, ingresos especiales o sobrecupos..."></textarea>
+                    <textarea id="observations" rows="2" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-tealish-700 focus:outline-none text-gray-700 text-xs" placeholder="Escriba aquí observaciones de cambios de turnos, ingresos especiales o sobrecupos..." oninput="autoSaveDraft()"></textarea>
                 </div>
 
                 <!-- Color Semaphore Legend -->
@@ -394,30 +405,35 @@
         </div>
     </div>
 
-    <!-- Modal para Consulta de Fechas Anteriormente Guardadas -->
+    <!-- Modal para Consulta de Fechas Anteriormente Guardadas en Base de Datos -->
     <div id="historyModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
             <!-- Header Modal -->
             <div class="bg-navy-800 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center space-x-2">
-                    <i class="fa-solid fa-clock-rotate-left text-teal-300 text-lg"></i>
-                    <h3 class="font-bold text-base">Historial de Reportes Guardados</h3>
+                    <i class="fa-solid fa-database text-teal-300 text-lg"></i>
+                    <h3 class="font-bold text-base">Base de Datos de Registros Hospitalarios</h3>
                 </div>
                 <button onclick="closeHistoryModal()" class="text-gray-300 hover:text-white text-lg px-2">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
 
-            <!-- Filters Bar -->
+            <!-- Filters & Actions Bar -->
             <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-3 text-xs">
-                <div class="flex items-center space-x-2 flex-1 min-w-[200px]">
+                <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[280px]">
                     <i class="fa-solid fa-filter text-tealish-700"></i>
-                    <span class="font-semibold text-gray-700">Filtrar por Fecha:</span>
+                    <span class="font-semibold text-gray-700">Filtrar Fecha:</span>
                     <input type="date" id="historyFilterDate" class="editable-input w-auto text-xs py-1 px-2 border-gray-300" onchange="renderHistoryList()">
-                    <button onclick="clearHistoryFilter()" class="text-xs text-slate-500 hover:text-slate-800 underline">Ver Todos</button>
+                    <button onclick="clearHistoryFilter()" class="text-xs text-slate-500 hover:text-slate-800 underline">Limpiar Filtro</button>
                 </div>
-                <div id="historyCountBadge" class="bg-tealish-700/10 text-tealish-800 font-bold px-2.5 py-1 rounded-full text-xs">
-                    0 registros
+                <div class="flex items-center gap-2">
+                    <button onclick="exportDBToJson()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-file-export"></i> Exportar BD (JSON)
+                    </button>
+                    <div id="historyCountBadge" class="bg-tealish-700/10 text-tealish-800 font-bold px-3 py-1 rounded-full text-xs">
+                        0 registros
+                    </div>
                 </div>
             </div>
 
@@ -430,6 +446,7 @@
                             <th class="p-2">Turno</th>
                             <th class="p-2">Responsable</th>
                             <th class="p-2 text-center">Ocupación %</th>
+                            <th class="p-2 text-center">Última Modificación</th>
                             <th class="p-2 text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -439,7 +456,7 @@
                 </table>
                 <div id="emptyHistoryMsg" class="text-center py-8 text-gray-400 text-xs hidden">
                     <i class="fa-solid fa-folder-open text-3xl mb-2 text-gray-300"></i>
-                    <p>No hay reportes guardados para la fecha seleccionada.</p>
+                    <p>No se encontraron registros almacenados en la base de datos.</p>
                 </div>
             </div>
 
@@ -452,9 +469,9 @@
         </div>
     </div>
 
-    <!-- JavaScript logic -->
+    <!-- JavaScript Engine & Database Management -->
     <script>
-        // Initial state data template
+        // Default Services Initial Setup
         const defaultServicesData = [
             { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 },
             { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 },
@@ -463,9 +480,112 @@
         ];
 
         let servicesData = JSON.parse(JSON.stringify(defaultServicesData));
-        const STORAGE_KEY = 'hospital_guamote_reports_v1';
+        const LOCAL_STORAGE_LAST_STATE = 'hospital_guamote_last_saved_state';
 
-        // Render Table Rows
+        // -------------------------------------------------------------
+        // DATABASE ENGINE: INDEXEDDB IMPLEMENTATION
+        // -------------------------------------------------------------
+        const DB_NAME = 'HospitalGuamoteDB';
+        const DB_VERSION = 1;
+        const STORE_REPORTS = 'reports';
+        let db = null;
+
+        // Initialize IndexedDB
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = function(e) {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains(STORE_REPORTS)) {
+                        const store = dbInstance.createObjectStore(STORE_REPORTS, { keyPath: 'id' });
+                        store.createIndex('date', 'date', { unique: false });
+                        store.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+                };
+
+                request.onsuccess = function(e) {
+                    db = e.target.result;
+                    document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
+                    document.getElementById('dbStatusText').innerText = "Base de Datos Conectada (IndexedDB)";
+                    resolve(db);
+                };
+
+                request.onerror = function(e) {
+                    console.error("IndexedDB Error:", e.target.error);
+                    document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
+                    document.getElementById('dbStatusText').innerText = "Error en IndexedDB (Modo Contingencia LocalStorage)";
+                    resolve(null);
+                };
+            });
+        }
+
+        // DB Operations: Insert / Update
+        function dbSaveRecord(record) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    // Fallback to localStorage if IndexedDB is unavailable
+                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
+                    const idx = localDB.findIndex(r => r.id === record.id);
+                    if (idx >= 0) localDB[idx] = record;
+                    else localDB.push(record);
+                    localStorage.setItem('fallback_indexed_db', JSON.stringify(localDB));
+                    resolve(record);
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_REPORTS], 'readwrite');
+                const store = transaction.objectStore(STORE_REPORTS);
+                const req = store.put(record);
+
+                req.onsuccess = () => resolve(record);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // DB Operations: Get All Records
+        function dbGetAllRecords() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
+                    resolve(localDB);
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_REPORTS], 'readonly');
+                const store = transaction.objectStore(STORE_REPORTS);
+                const req = store.getAll();
+
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // DB Operations: Delete Record
+        function dbDeleteRecord(id) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
+                    localDB = localDB.filter(r => r.id !== id);
+                    localStorage.setItem('fallback_indexed_db', JSON.stringify(localDB));
+                    resolve(true);
+                    return;
+                }
+
+                const transaction = db.transaction([STORE_REPORTS], 'readwrite');
+                const store = transaction.objectStore(STORE_REPORTS);
+                const req = store.delete(id);
+
+                req.onsuccess = () => resolve(true);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // APPLICATION CORE LOGIC
+        // -------------------------------------------------------------
+
+        // Render Main Data Table
         function renderTable() {
             const tbody = document.getElementById('servicesTableBody');
             tbody.innerHTML = '';
@@ -476,7 +596,6 @@
                 const percentageNum = parseFloat(percentage);
                 
                 const isOverCap = percentageNum > 100;
-
                 const sumGender = item.hombres + item.mujeres;
                 const isGenderMismatch = sumGender > item.pacientes;
 
@@ -487,14 +606,14 @@
                 const genderErrorClass = isGenderMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
                 const capacityErrorClass = isCapacityMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
                 
-                let progressBg = '#EAB308'; // Soft Golden Amber for Normal (40-100%)
+                let progressBg = '#EAB308';
                 let textContrastClass = 'text-slate-900';
                 
                 if (isOverCap) {
-                    progressBg = '#EF4444'; // Soft Rose/Red for Overcapacity
+                    progressBg = '#EF4444';
                     textContrastClass = 'text-white';
                 } else if (percentageNum < 40) {
-                    progressBg = '#4ADE80'; // Soft Emerald Green for Low Capacity
+                    progressBg = '#4ADE80';
                     textContrastClass = 'text-slate-900';
                 }
 
@@ -512,7 +631,7 @@
                 tr.innerHTML = `
                     <td class="py-2.5 px-3 text-left font-bold text-gray-700 border-r border-gray-300">
                         ${item.name}
-                        ${isGenderMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hombres + Mujeres ('+sumGender+') supera Total Pacientes ('+item.pacientes+')</div>' : ''}
+                        ${isGenderMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hombres + Mujeres ('+sumGender+') supera Pacientes ('+item.pacientes+')</div>' : ''}
                         ${isCapacityMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Pacientes + Disponibles ('+sumCapacity+') supera Dotación ('+item.dotacion+')</div>' : ''}
                     </td>
                     <td class="py-2.5 px-2 border-r border-gray-300 font-semibold text-gray-700 bg-gray-100/50">${item.dotacion}</td>
@@ -534,19 +653,18 @@
                             ${availableIconHtml}
                             <input type="number" min="0" value="${item.disponibles}" 
                                 onchange="updateValue(${index}, 'disponibles', this.value)"
-                                class="editable-input w-12 text-center text-gray-800 border-0 bg-transparent ${capacityErrorClass}" 
-                                title="${isCapacityMismatch ? 'La suma de Disponibles + Pacientes supera la Dotación de Camas' : ''}" />
+                                class="editable-input w-12 text-center text-gray-800 border-0 bg-transparent ${capacityErrorClass}" />
                         </div>
                     </td>
                     <td class="py-2.5 px-2 border-r border-gray-300">
                         <input type="number" min="0" value="${item.hombres}" 
                             onchange="updateValue(${index}, 'hombres', this.value)"
-                            class="editable-input input-hombres ${genderErrorClass}" title="${isGenderMismatch ? 'La suma excede el total de pacientes' : ''}" />
+                            class="editable-input input-hombres ${genderErrorClass}" />
                     </td>
                     <td class="py-2.5 px-2">
                         <input type="number" min="0" value="${item.mujeres}" 
                             onchange="updateValue(${index}, 'mujeres', this.value)"
-                            class="editable-input input-mujeres ${genderErrorClass}" title="${isGenderMismatch ? 'La suma excede el total de pacientes' : ''}" />
+                            class="editable-input input-mujeres ${genderErrorClass}" />
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -555,30 +673,31 @@
             updateCalculations();
         }
 
-        // Handle live updates
+        // Live value update trigger
         function updateValue(index, field, value) {
             const val = parseInt(value) || 0;
-            const updatedVal = val < 0 ? 0 : val;
-            servicesData[index][field] = updatedVal;
-
+            servicesData[index][field] = val < 0 ? 0 : val;
             renderTable();
+            autoSaveDraft();
         }
 
-        // Determine Shift according to time (Day: 07:00 to 18:59, Night: 19:00 to 06:59)
+        // Metadata change trigger
+        function onMetadataChange() {
+            updateShiftBadge();
+            updateCalculations();
+            autoSaveDraft();
+        }
+
+        // Shift determination logic
         function getShiftByTime(timeString) {
             if (!timeString) return { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' };
-            
             const parts = timeString.split(':');
             const hour = parseInt(parts[0], 10);
-            
-            if (hour >= 7 && hour < 19) {
-                return { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' };
-            } else {
-                return { shift: 'NOCHE', icon: 'fa-moon', colorClass: 'bg-indigo-900 text-indigo-100 border-indigo-700' };
-            }
+            return (hour >= 7 && hour < 19)
+                ? { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' }
+                : { shift: 'NOCHE', icon: 'fa-moon', colorClass: 'bg-indigo-900 text-indigo-100 border-indigo-700' };
         }
 
-        // Update Shift Indicator badge
         function updateShiftBadge() {
             const timeVal = document.getElementById('reportTime').value;
             const shiftInfo = getShiftByTime(timeVal);
@@ -592,19 +711,9 @@
             textElem.innerText = `TURNO ${shiftInfo.shift}`;
         }
 
-        function updateShiftAndCalculations() {
-            updateShiftBadge();
-            updateCalculations();
-        }
-
-        // Calculate Totals & Percentages and update KPI cards
+        // Calculate Totals and KPIs
         function updateCalculations() {
-            let totalDot = 0;
-            let totalPac = 0;
-            let totalDisp = 0;
-            let totalH = 0;
-            let totalM = 0;
-
+            let totalDot = 0, totalPac = 0, totalDisp = 0, totalH = 0, totalM = 0;
             const overcapacityAlerts = [];
 
             servicesData.forEach(item => {
@@ -617,17 +726,15 @@
                 if (item.dotacion > 0 && item.pacientes > item.dotacion) {
                     const perc = ((item.pacientes / item.dotacion) * 100).toFixed(2).replace('.', ',');
                     const formattedName = item.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-                    overcapacityAlerts.push(`${formattedName} reporta ${perc}% de ocupación (${item.pacientes} pacientes para ${item.dotacion} camas asignadas).`);
+                    overcapacityAlerts.push(`${formattedName} reporta ${perc}% de ocupación (${item.pacientes} pacientes para ${item.dotacion} camas).`);
                 }
             });
 
             const totalPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : '0.00';
             const totalPercFormatted = totalPerc.replace('.', ',');
-
             const freePercNum = totalDot > 0 ? Math.max(0, ((totalDisp / totalDot) * 100)).toFixed(2) : '0.00';
             const freePercFormatted = freePercNum.replace('.', ',');
 
-            // Table Footers
             document.getElementById('totalDotacion').innerText = totalDot;
             document.getElementById('totalPacientes').innerText = totalPac;
             document.getElementById('totalPorcentaje').innerText = `${totalPercFormatted}%`;
@@ -636,21 +743,15 @@
             document.getElementById('totalMujeres').innerText = totalM;
 
             const percCell = document.getElementById('totalPorcentaje');
-            if (parseFloat(totalPerc) > 100) {
-                percCell.classList.add('bg-red-700', 'text-white');
-            } else {
-                percCell.classList.remove('bg-red-700', 'text-white');
-            }
+            if (parseFloat(totalPerc) > 100) percCell.classList.add('bg-red-700', 'text-white');
+            else percCell.classList.remove('bg-red-700', 'text-white');
 
-            // Update Summary KPI Cards
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
-            
             document.getElementById('kpiCamasLibres').innerText = totalDisp;
             document.getElementById('kpiCamasOcupadas').innerText = totalPac;
             document.getElementById('kpiTotalDotacionSubtext').innerText = `de ${totalDot} dotadas`;
 
-            // Dynamic Overcapacity Alert Box
             const alertCard = document.getElementById('kpiAlertCard');
             const alertMsg = document.getElementById('kpiAlertMessage');
 
@@ -663,25 +764,23 @@
             }
         }
 
-        // Guardar reporte actual en LocalStorage
-        function saveCurrentReport() {
+        // -------------------------------------------------------------
+        // AUTOMATIC SAVING & STATE PERSISTENCE
+        // -------------------------------------------------------------
+
+        function getCurrentStatePayload() {
             const date = document.getElementById('reportDate').value;
             const time = document.getElementById('reportTime').value;
             const responsible = document.getElementById('reportResponsible').value.trim();
             const observations = document.getElementById('observations').value.trim();
             const shiftInfo = getShiftByTime(time);
 
-            if (!date || !time) {
-                showToast("Por favor complete la fecha y la hora del reporte.", "fa-triangle-exclamation", "text-amber-400");
-                return;
-            }
-
             const totalDot = servicesData.reduce((acc, curr) => acc + curr.dotacion, 0);
             const totalPac = servicesData.reduce((acc, curr) => acc + curr.pacientes, 0);
             const occupationPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : "0.00";
 
-            const reportRecord = {
-                id: 'REP_' + Date.now(),
+            return {
+                id: `REP_${date}_${time.replace(':', '')}`,
                 date: date,
                 time: time,
                 shift: shiftInfo.shift,
@@ -691,47 +790,90 @@
                 servicesData: JSON.parse(JSON.stringify(servicesData)),
                 timestamp: new Date().toISOString()
             };
+        }
 
-            const existingReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            
-            // Reemplazar si coincide exactamente fecha y hora, o agregar nuevo
-            const existingIndex = existingReports.findIndex(r => r.date === date && r.time === time);
-            if (existingIndex >= 0) {
-                existingReports[existingIndex] = reportRecord;
-            } else {
-                existingReports.push(reportRecord);
+        // Auto Save modified state immediately into memory and database
+        let autoSaveDebounce = null;
+        function autoSaveDraft() {
+            clearTimeout(autoSaveDebounce);
+            autoSaveDebounce = setTimeout(async () => {
+                const payload = getCurrentStatePayload();
+                localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(payload));
+                await dbSaveRecord(payload);
+                updateSyncLabel(payload.timestamp);
+            }, 300);
+        }
+
+        function updateSyncLabel(isoString) {
+            if (!isoString) return;
+            const d = new Date(isoString);
+            const formatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('lastSyncTime').innerText = formatted;
+        }
+
+        // Manual Save Trigger
+        async function saveCurrentReport(showNotification = true) {
+            const payload = getCurrentStatePayload();
+            if (!payload.date || !payload.time) {
+                showToast("Complete fecha y hora para guardar.", "fa-triangle-exclamation", "text-amber-400");
+                return;
             }
 
-            // Ordenar por fecha y hora descendente
-            existingReports.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+            localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(payload));
+            await dbSaveRecord(payload);
+            updateSyncLabel(payload.timestamp);
 
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(existingReports));
-            showToast("Reporte guardado exitosamente.", "fa-circle-check", "text-emerald-400");
+            if (showNotification) {
+                showToast("Registro guardado exitosamente en Base de Datos.", "fa-circle-check", "text-emerald-400");
+            }
         }
 
-        // Toast feedback
-        function showToast(message, iconClass, iconColorClass) {
-            const toast = document.getElementById('toastNotification');
-            const toastMsg = document.getElementById('toastMessage');
-            const toastIcon = document.getElementById('toastIcon');
+        // Load the last saved state when opening application
+        async function loadLastSavedState() {
+            // First check LocalStorage for instant state recovery
+            const savedStateStr = localStorage.getItem(LOCAL_STORAGE_LAST_STATE);
+            if (savedStateStr) {
+                try {
+                    const savedState = JSON.parse(savedStateStr);
+                    applyRecordToScreen(savedState);
+                    updateSyncLabel(savedState.timestamp);
+                    return;
+                } catch(e) { console.error(e); }
+            }
 
-            toastMsg.innerText = message;
-            toastIcon.className = `fa-solid ${iconClass} ${iconColorClass} text-lg`;
-
-            toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-                setTimeout(() => toast.classList.add('hidden'), 300);
-            }, 3000);
+            // Secondary check: query IndexedDB for newest record
+            const allRecords = await dbGetAllRecords();
+            if (allRecords.length > 0) {
+                allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                applyRecordToScreen(allRecords[0]);
+                updateSyncLabel(allRecords[0].timestamp);
+            } else {
+                resetDefaultValues();
+            }
         }
 
-        // Modales de Historial
-        function openHistoryModal() {
+        function applyRecordToScreen(record) {
+            if (!record) return;
+            document.getElementById('reportDate').value = record.date || new Date().toISOString().split('T')[0];
+            document.getElementById('reportTime').value = record.time || '08:00';
+            document.getElementById('reportResponsible').value = record.responsible === 'Sin especificar' ? '' : (record.responsible || '');
+            document.getElementById('observations').value = record.observations || '';
+            
+            if (record.servicesData && Array.isArray(record.servicesData)) {
+                servicesData = JSON.parse(JSON.stringify(record.servicesData));
+            }
+
+            updateShiftBadge();
+            renderTable();
+        }
+
+        // -------------------------------------------------------------
+        // DATABASE HISTORICAL CONSULTATION MODAL
+        // -------------------------------------------------------------
+
+        async function openHistoryModal() {
             document.getElementById('historyModal').classList.remove('hidden');
-            renderHistoryList();
+            await renderHistoryList();
         }
 
         function closeHistoryModal() {
@@ -743,8 +885,8 @@
             renderHistoryList();
         }
 
-        function renderHistoryList() {
-            const reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        async function renderHistoryList() {
+            const reports = await dbGetAllRecords();
             const filterDate = document.getElementById('historyFilterDate').value;
             const tbody = document.getElementById('historyTableBody');
             const emptyMsg = document.getElementById('emptyHistoryMsg');
@@ -752,6 +894,7 @@
 
             tbody.innerHTML = '';
 
+            reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
             const filtered = reports.filter(r => !filterDate || r.date === filterDate);
             badge.innerText = `${filtered.length} registro(s)`;
 
@@ -771,16 +914,19 @@
                     ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800"><i class="fa-solid fa-moon mr-1"></i>Noche</span>`
                     : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-sun mr-1"></i>Día</span>`;
 
+                const modDate = rep.timestamp ? new Date(rep.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
+
                 tr.innerHTML = `
                     <td class="p-2 font-bold text-gray-800">${rep.date} <span class="text-gray-500 font-normal ml-1">(${rep.time})</span></td>
                     <td class="p-2">${shiftTag}</td>
                     <td class="p-2 text-gray-600">${rep.responsible}</td>
                     <td class="p-2 text-center font-bold text-tealish-800">${rep.occupationPerc.replace('.', ',')}%</td>
+                    <td class="p-2 text-center text-[10px] text-gray-500">${modDate}</td>
                     <td class="p-2 text-center space-x-1">
-                        <button onclick="loadReportFromHistory('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition" title="Cargar este reporte">
+                        <button onclick="loadReportFromDB('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition" title="Cargar este reporte">
                             <i class="fa-solid fa-folder-open mr-1"></i> Ver
                         </button>
-                        <button onclick="deleteReportFromHistory('${rep.id}')" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[11px] font-semibold transition" title="Eliminar registro">
+                        <button onclick="deleteReportFromDB('${rep.id}')" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[11px] font-semibold transition" title="Eliminar registro">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </td>
@@ -789,34 +935,55 @@
             });
         }
 
-        function loadReportFromHistory(id) {
-            const reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        async function loadReportFromDB(id) {
+            const reports = await dbGetAllRecords();
             const rep = reports.find(r => r.id === id);
 
             if (!rep) return;
-
-            document.getElementById('reportDate').value = rep.date;
-            document.getElementById('reportTime').value = rep.time;
-            document.getElementById('reportResponsible').value = rep.responsible === 'Sin especificar' ? '' : rep.responsible;
-            document.getElementById('observations').value = rep.observations || '';
-            
-            servicesData = JSON.parse(JSON.stringify(rep.servicesData));
-
-            updateShiftBadge();
-            renderTable();
+            applyRecordToScreen(rep);
+            localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(rep));
+            updateSyncLabel(rep.timestamp);
             closeHistoryModal();
-            showToast("Reporte cargado en pantalla.", "fa-folder-open", "text-sky-400");
+            showToast("Registro cargado en la tabla principal.", "fa-folder-open", "text-sky-400");
         }
 
-        function deleteReportFromHistory(id) {
-            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            reports = reports.filter(r => r.id !== id);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
-            renderHistoryList();
-            showToast("Reporte eliminado del historial.", "fa-trash", "text-rose-400");
+        async function deleteReportFromDB(id) {
+            await dbDeleteRecord(id);
+            await renderHistoryList();
+            showToast("Registro eliminado de la Base de Datos.", "fa-trash", "text-rose-400");
         }
 
-        // Restablecer valores iniciales por defecto
+        async function exportDBToJson() {
+            const reports = await dbGetAllRecords();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reports, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `Respaldos_Hospital_Guamote_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        // Toast Feedback helper
+        function showToast(message, iconClass, iconColorClass) {
+            const toast = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+            toastIcon.className = `fa-solid ${iconClass} ${iconColorClass} text-lg`;
+
+            toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // Reset to initial values
         function resetDefaultValues() {
             servicesData = JSON.parse(JSON.stringify(defaultServicesData));
             document.getElementById('observations').value = '';
@@ -831,9 +998,10 @@
 
             updateShiftBadge();
             renderTable();
+            autoSaveDraft();
         }
 
-        // Exportar a PDF usando html2pdf.js
+        // PDF Export
         function exportToPDF() {
             const element = document.getElementById('report-content');
             const dateStr = document.getElementById('reportDate').value || 'reporte';
@@ -850,17 +1018,10 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // Inicialización al cargar la página
-        window.onload = function() {
-            const now = new Date();
-            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
-            
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('reportTime').value = `${hours}:${minutes}`;
-
-            updateShiftBadge();
-            renderTable();
+        // Application Initialization
+        window.onload = async function() {
+            await initDatabase();
+            await loadLastSavedState();
         };
     </script>
 </body>
