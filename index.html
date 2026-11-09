@@ -49,15 +49,8 @@
             color: #2D3748;
         }
 
-        /* Styling matching the provided image */
         .header-banner {
             background-color: #2D3E4E;
-            color: white;
-            border-radius: 6px;
-        }
-
-        .header-sub-banner {
-            background-color: #385764;
             color: white;
             border-radius: 6px;
         }
@@ -98,7 +91,6 @@
             background-color: #FFFFF0;
         }
 
-        /* Gender specific input styling matching the attached image */
         input.input-hombres {
             background-color: #E0F2FE;
             border: 1px solid #BAE6FD;
@@ -119,27 +111,6 @@
             border-color: #9333EA;
         }
 
-        /* Progress bar semaphores matching image style */
-        .progress-container {
-            background-color: #E2E8F0;
-            border-radius: 9999px;
-            position: relative;
-            height: 28px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #CBD5E1;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
-        }
-        input.editable-input:focus {
-            outline: none;
-            border-color: #385764;
-            box-shadow: 0 0 0 2px rgba(56, 87, 100, 0.2);
-            background-color: #FFFFF0;
-        }
-
-        /* Progress bar semaphores */
         .progress-container {
             background-color: #E2E8F0;
             border-radius: 9999px;
@@ -149,6 +120,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid #CBD5E1;
         }
 
         .progress-bar {
@@ -158,6 +130,12 @@
             bottom: 0;
             transition: width 0.4s ease, background-color 0.4s ease;
             border-radius: 9999px;
+        }
+
+        /* Modal styling */
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
         }
 
         /* Print formatting */
@@ -185,25 +163,39 @@
 </head>
 <body class="p-4 md:p-6 min-h-screen">
 
+    <!-- Toast Notification Box -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0 hidden">
+        <div class="bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-700">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+            <span id="toastMessage" class="text-xs font-semibold">Guardado exitosamente</span>
+        </div>
+    </div>
+
     <!-- Top Action Toolbar (No Print) -->
     <div class="max-w-7xl mx-auto mb-4 flex flex-wrap justify-between items-center bg-white p-4 rounded-xl shadow-sm no-print gap-3">
         <div class="flex items-center space-x-3">
-            <i class="fa-solid me-1 fa-hospital text-tealish-700 text-2xl"></i>
+            <i class="fa-solid fa-hospital text-tealish-700 text-2xl"></i>
             <div>
                 <h1 class="font-bold text-gray-800 text-lg leading-tight">Sistema de Control Hospitalario</h1>
-                <p class="text-xs text-gray-500">Gestión Diaria de Ocupación de Camas</p>
+                <p class="text-xs text-gray-500">Gestión Diaria y Registro de Ocupación de Camas</p>
             </div>
         </div>
         
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+            <button onclick="saveCurrentReport()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Reporte
+            </button>
+            <button onclick="openHistoryModal()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-clock-rotate-left mr-2"></i> Consultar Fechas
+            </button>
             <button onclick="resetDefaultValues()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition flex items-center">
-                <i class="fa-solid fa-rotate-left mr-2"></i> Restablecer Datos
+                <i class="fa-solid fa-rotate-left mr-2"></i> Restablecer
             </button>
-            <button onclick="window.print()" class="px-4 py-2 bg-tealish-700 hover:bg-tealish-800 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
-                <i class="fa-solid fa-print mr-2"></i> Imprimir Reporte
+            <button onclick="window.print()" class="px-3.5 py-2 bg-tealish-700 hover:bg-tealish-800 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-print mr-2"></i> Imprimir
             </button>
-            <button onclick="exportToPDF()" class="px-4 py-2 bg-navy-800 hover:bg-navy-900 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
-                <i class="fa-solid fa-file-pdf mr-2"></i> Guardar como PDF
+            <button onclick="exportToPDF()" class="px-3.5 py-2 bg-navy-800 hover:bg-navy-900 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
+                <i class="fa-solid fa-file-pdf mr-2"></i> Guardar PDF
             </button>
         </div>
     </div>
@@ -211,7 +203,7 @@
     <!-- Main Printable Container -->
     <div id="report-content" class="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow-xl print-container border border-gray-200">
         
-        <!-- Header Section matching template image -->
+        <!-- Header Section -->
         <div class="mb-4 text-center">
             <!-- Title Bar 1 -->
             <div class="header-banner py-2.5 px-4 shadow-sm mb-1.5 flex justify-between items-center relative">
@@ -226,17 +218,34 @@
                 </div>
             </div>
 
-            <!-- Date Picker / Metadata Bar -->
-        <div class="mt-2 flex flex-wrap justify-center items-center gap-4 text-sm font-semibold text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-200 mb-4">
-            <div class="flex items-center space-x-2">
-                <i class="fa-regular fa-calendar-days text-tealish-700 text-base"></i>
-                <span>Fecha del Reporte:</span>
-                <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-0.5 rounded" onchange="updateCalculations()">
-            </div>
-            <div class="flex items-center space-x-2 border-l border-gray-300 pl-4">
-                <i class="fa-solid fa-user-doctor text-tealish-700 text-base"></i>
-                <span>Responsable:</span>
-                <input type="text" id="reportResponsible" class="editable-input w-48 text-left font-normal text-xs py-1" value="" placeholder="Nombre del responsable">
+            <!-- Date, Time, Shift & Metadata Bar -->
+            <div class="mt-2 flex flex-wrap justify-between items-center gap-3 text-xs font-semibold text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-200 mb-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center space-x-1.5">
+                        <i class="fa-regular fa-calendar-days text-tealish-700 text-sm"></i>
+                        <span>Fecha:</span>
+                        <input type="date" id="reportDate" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="updateShiftAndCalculations()">
+                    </div>
+
+                    <div class="flex items-center space-x-1.5 border-l border-gray-300 pl-3">
+                        <i class="fa-regular fa-clock text-tealish-700 text-sm"></i>
+                        <span>Hora:</span>
+                        <input type="time" id="reportTime" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="updateShiftAndCalculations()">
+                    </div>
+
+                    <div class="flex items-center space-x-1.5 border-l border-gray-300 pl-3">
+                        <span id="shiftBadge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-xs">
+                            <i id="shiftIcon" class="fa-solid fa-sun mr-1.5"></i>
+                            <span id="shiftText">TURNO DÍA</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-user-doctor text-tealish-700 text-sm"></i>
+                    <span>Responsable:</span>
+                    <input type="text" id="reportResponsible" class="editable-input w-48 text-left font-normal text-xs py-1" value="" placeholder="Nombre del responsable">
+                </div>
             </div>
         </div>
 
@@ -269,11 +278,11 @@
                         <tr class="table-footer text-xs font-extrabold uppercase">
                             <td class="py-2.5 px-2 text-left border-r border-tealish-700">TOTAL</td>
                             <td id="totalDotacion" class="py-2.5 px-1 border-r border-tealish-700 text-sm">15</td>
-                            <td id="totalPacientes" class="py-2.5 px-1 border-r border-tealish-700 text-sm">10</td>
-                            <td id="totalPorcentaje" class="py-2.5 px-1 border-r border-tealish-700 text-sm">66.67%</td>
-                            <td id="totalDisponibles" class="py-2.5 px-1 border-r border-tealish-700 text-sm text-center">5</td>
-                            <td id="totalHombres" class="py-2.5 px-1 border-r border-tealish-700 text-sm w-[9.5%] text-sky-200">5</td>
-                            <td id="totalMujeres" class="py-2.5 px-1 text-sm w-[9.5%] text-purple-200">5</td>
+                            <td id="totalPacientes" class="py-2.5 px-1 border-r border-tealish-700 text-sm">0</td>
+                            <td id="totalPorcentaje" class="py-2.5 px-1 border-r border-tealish-700 text-sm">0.00%</td>
+                            <td id="totalDisponibles" class="py-2.5 px-1 border-r border-tealish-700 text-sm text-center">15</td>
+                            <td id="totalHombres" class="py-2.5 px-1 border-r border-tealish-700 text-sm w-[9.5%] text-sky-200">0</td>
+                            <td id="totalMujeres" class="py-2.5 px-1 text-sm w-[9.5%] text-purple-200">0</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -281,7 +290,7 @@
                 <!-- Observations Box -->
                 <div class="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs">
                     <label class="block font-bold text-gray-700 mb-1 flex items-center gap-1">
-                        <i class="fa-solid fa-comment-medical text-tealish-700"></i> Observaciones Novedades del Día:
+                        <i class="fa-solid fa-comment-medical text-tealish-700"></i> Observaciones / Novedades del Día:
                     </label>
                     <textarea id="observations" rows="2" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-tealish-700 focus:outline-none text-gray-700 text-xs" placeholder="Escriba aquí observaciones de cambios de turnos, ingresos especiales o sobrecupos..."></textarea>
                 </div>
@@ -303,7 +312,7 @@
                 </div>
             </div>
 
-            <!-- Right Side: REPORTE RESUMIDO Side Panel (4 Cols - Reduced Size) -->
+            <!-- Right Side: REPORTE RESUMIDO Side Panel (4 Cols) -->
             <div class="lg:col-span-4 space-y-3">
                 <!-- Panel Title Header -->
                 <div class="flex items-center justify-between pb-2 border-b-2 border-tealish-700/30">
@@ -320,19 +329,17 @@
                         <div>
                             <h4 class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">OCUPACIÓN GENERAL</h4>
                             <div class="flex items-baseline gap-2 mt-0.5">
-                                <span id="kpiOcupacionGeneral" class="text-2xl font-black text-slate-800 tracking-tight">66,67%</span>
+                                <span id="kpiOcupacionGeneral" class="text-2xl font-black text-slate-800 tracking-tight">0,00%</span>
                             </div>
                         </div>
                         <span id="kpiPorcentajeLibre" class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-extrabold shadow-xs">
-                            <i class="fa-solid fa-circle-check text-xs"></i> 33,33% Libre
+                            <i class="fa-solid fa-circle-check text-xs"></i> 100,00% Libre
                         </span>
                     </div>
                 </div>
 
                 <!-- KPI Card 2: Camas Libres y Ocupadas -->
                 <div class="bg-gradient-to-br from-white to-slate-50 p-3.5 rounded-xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
-                    
                     <div class="grid grid-cols-2 gap-3 divide-x divide-slate-200">
                         <!-- Camas Libres -->
                         <div class="pr-2">
@@ -341,7 +348,7 @@
                                 <i class="fa-solid fa-bed text-emerald-600/40 text-xs"></i>
                             </div>
                             <div id="kpiCamasLibres" class="text-2xl font-black text-slate-800 tracking-tight">
-                                5
+                                15
                             </div>
                             <p class="text-[10px] font-semibold text-emerald-600 leading-tight mt-0.5">
                                 Disponibles
@@ -355,7 +362,7 @@
                                 <i class="fa-solid fa-user-bed text-tealish-700/40 text-xs"></i>
                             </div>
                             <div id="kpiCamasOcupadas" class="text-2xl font-black text-slate-800 tracking-tight">
-                                10
+                                0
                             </div>
                             <p id="kpiTotalDotacionSubtext" class="text-[10px] font-semibold text-slate-500 leading-tight mt-0.5">
                                 de 15 dotadas
@@ -365,15 +372,15 @@
                 </div>
 
                 <!-- KPI Card 3: Dynamic Overcapacity Alert -->
-                <div id="kpiAlertCard" class="p-3.5 rounded-xl border-l-4 border-red-500 bg-gradient-to-r from-red-50/90 to-red-50/40 text-red-950 shadow-sm transition-all relative overflow-hidden">
-                    <div class="flex items-center gap-2 font-bold text-xs text-red-800 mb-1.5">
-                        <div class="w-6 h-6 rounded-lg bg-red-100 flex items-center justify-center text-red-600 text-xs shadow-xs">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
+                <div id="kpiAlertCard" class="p-3.5 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50/90 to-emerald-50/40 text-emerald-950 shadow-sm transition-all relative overflow-hidden">
+                    <div class="flex items-center gap-2 font-bold text-xs text-slate-800 mb-1.5">
+                        <div class="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs shadow-xs">
+                            <i class="fa-solid fa-circle-check"></i>
                         </div>
-                        <span>Alerta de Sobrecupo</span>
+                        <span>Estado del Servicio</span>
                     </div>
-                    <div id="kpiAlertMessage" class="text-[11px] leading-relaxed font-medium text-red-800/90 bg-white/60 p-2 rounded-lg border border-red-100">
-                        Cirugía General reporta 150,00% de ocupación (3 pacientes para 2 camas asignadas).
+                    <div id="kpiAlertMessage" class="text-[11px] leading-relaxed font-medium text-emerald-800/90 bg-white/60 p-2 rounded-lg border border-emerald-100">
+                        Todos los servicios operan dentro del límite de capacidad.
                     </div>
                 </div>
             </div>
@@ -387,15 +394,76 @@
         </div>
     </div>
 
+    <!-- Modal para Consulta de Fechas Anteriormente Guardadas -->
+    <div id="historyModal" class="fixed inset-0 z-50 flex items-center justify-center modal-backdrop hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-gray-200 flex flex-col max-h-[90vh]">
+            <!-- Header Modal -->
+            <div class="bg-navy-800 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-teal-300 text-lg"></i>
+                    <h3 class="font-bold text-base">Historial de Reportes Guardados</h3>
+                </div>
+                <button onclick="closeHistoryModal()" class="text-gray-300 hover:text-white text-lg px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-3 text-xs">
+                <div class="flex items-center space-x-2 flex-1 min-w-[200px]">
+                    <i class="fa-solid fa-filter text-tealish-700"></i>
+                    <span class="font-semibold text-gray-700">Filtrar por Fecha:</span>
+                    <input type="date" id="historyFilterDate" class="editable-input w-auto text-xs py-1 px-2 border-gray-300" onchange="renderHistoryList()">
+                    <button onclick="clearHistoryFilter()" class="text-xs text-slate-500 hover:text-slate-800 underline">Ver Todos</button>
+                </div>
+                <div id="historyCountBadge" class="bg-tealish-700/10 text-tealish-800 font-bold px-2.5 py-1 rounded-full text-xs">
+                    0 registros
+                </div>
+            </div>
+
+            <!-- History List Table Container -->
+            <div class="p-4 overflow-y-auto flex-1">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100 text-gray-700 uppercase font-bold text-[10px] border-b border-gray-300">
+                            <th class="p-2">Fecha / Hora</th>
+                            <th class="p-2">Turno</th>
+                            <th class="p-2">Responsable</th>
+                            <th class="p-2 text-center">Ocupación %</th>
+                            <th class="p-2 text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody" class="divide-y divide-gray-200 font-medium">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div id="emptyHistoryMsg" class="text-center py-8 text-gray-400 text-xs hidden">
+                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-gray-300"></i>
+                    <p>No hay reportes guardados para la fecha seleccionada.</p>
+                </div>
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="p-3 bg-gray-50 border-t border-gray-200 text-right">
+                <button onclick="closeHistoryModal()" class="px-4 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs font-semibold">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript logic -->
     <script>
-        // Initial state data based on provided image
-        const servicesData = [
+        // Initial state data template
+        const defaultServicesData = [
             { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 },
             { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 },
             { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 0, disponibles: 2, hombres: 0, mujeres: 0 },
             { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 }
         ];
+
+        let servicesData = JSON.parse(JSON.stringify(defaultServicesData));
+        const STORAGE_KEY = 'hospital_guamote_reports_v1';
 
         // Render Table Rows
         function renderTable() {
@@ -407,14 +475,11 @@
                 const percentage = item.dotacion > 0 ? ((item.pacientes / item.dotacion) * 100).toFixed(2) : '0.00';
                 const percentageNum = parseFloat(percentage);
                 
-                // Alert check
                 const isOverCap = percentageNum > 100;
 
-                // Validation check 1: hombres + mujeres should not exceed total pacientes
                 const sumGender = item.hombres + item.mujeres;
                 const isGenderMismatch = sumGender > item.pacientes;
 
-                // Validation check 2: disponibles + pacientes should not exceed dotacion de camas
                 const sumCapacity = item.disponibles + item.pacientes;
                 const isCapacityMismatch = sumCapacity > item.dotacion;
 
@@ -422,7 +487,6 @@
                 const genderErrorClass = isGenderMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
                 const capacityErrorClass = isCapacityMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
                 
-                // Color bar calculation with softer pastel colors matching the user sample image
                 let progressBg = '#EAB308'; // Soft Golden Amber for Normal (40-100%)
                 let textContrastClass = 'text-slate-900';
                 
@@ -434,7 +498,6 @@
                     textContrastClass = 'text-slate-900';
                 }
 
-                // Available Beds Icon logic (Check vs Minus/Alert)
                 let availableIconHtml = '';
                 if (isCapacityMismatch) {
                     availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs mr-1.5" title="Error de capacidad"><i class="fa-solid fa-triangle-exclamation"></i></span>`;
@@ -492,13 +555,46 @@
             updateCalculations();
         }
 
-        // Handle live updates with validation feedback
+        // Handle live updates
         function updateValue(index, field, value) {
             const val = parseInt(value) || 0;
             const updatedVal = val < 0 ? 0 : val;
             servicesData[index][field] = updatedVal;
 
             renderTable();
+        }
+
+        // Determine Shift according to time (Day: 07:00 to 18:59, Night: 19:00 to 06:59)
+        function getShiftByTime(timeString) {
+            if (!timeString) return { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' };
+            
+            const parts = timeString.split(':');
+            const hour = parseInt(parts[0], 10);
+            
+            if (hour >= 7 && hour < 19) {
+                return { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' };
+            } else {
+                return { shift: 'NOCHE', icon: 'fa-moon', colorClass: 'bg-indigo-900 text-indigo-100 border-indigo-700' };
+            }
+        }
+
+        // Update Shift Indicator badge
+        function updateShiftBadge() {
+            const timeVal = document.getElementById('reportTime').value;
+            const shiftInfo = getShiftByTime(timeVal);
+
+            const badgeElem = document.getElementById('shiftBadge');
+            const iconElem = document.getElementById('shiftIcon');
+            const textElem = document.getElementById('shiftText');
+
+            badgeElem.className = `inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${shiftInfo.colorClass}`;
+            iconElem.className = `fa-solid ${shiftInfo.icon} mr-1.5`;
+            textElem.innerText = `TURNO ${shiftInfo.shift}`;
+        }
+
+        function updateShiftAndCalculations() {
+            updateShiftBadge();
+            updateCalculations();
         }
 
         // Calculate Totals & Percentages and update KPI cards
@@ -518,10 +614,8 @@
                 totalH += item.hombres;
                 totalM += item.mujeres;
 
-                // Check overcapacity per service
                 if (item.dotacion > 0 && item.pacientes > item.dotacion) {
                     const perc = ((item.pacientes / item.dotacion) * 100).toFixed(2).replace('.', ',');
-                    // Capitalize service name cleanly (e.g. Cirugía General)
                     const formattedName = item.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
                     overcapacityAlerts.push(`${formattedName} reporta ${perc}% de ocupación (${item.pacientes} pacientes para ${item.dotacion} camas asignadas).`);
                 }
@@ -530,7 +624,6 @@
             const totalPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : '0.00';
             const totalPercFormatted = totalPerc.replace('.', ',');
 
-            // Calculate free percentage based on total dotation
             const freePercNum = totalDot > 0 ? Math.max(0, ((totalDisp / totalDot) * 100)).toFixed(2) : '0.00';
             const freePercFormatted = freePercNum.replace('.', ',');
 
@@ -542,7 +635,6 @@
             document.getElementById('totalHombres').innerText = totalH;
             document.getElementById('totalMujeres').innerText = totalM;
 
-            // Highlight percentage total if global overcapacity
             const percCell = document.getElementById('totalPorcentaje');
             if (parseFloat(totalPerc) > 100) {
                 percCell.classList.add('bg-red-700', 'text-white');
@@ -554,12 +646,11 @@
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
             
-            // Dual Metric Card: Camas Libres + Camas Ocupadas
             document.getElementById('kpiCamasLibres').innerText = totalDisp;
             document.getElementById('kpiCamasOcupadas').innerText = totalPac;
             document.getElementById('kpiTotalDotacionSubtext').innerText = `de ${totalDot} dotadas`;
 
-            // Update Dynamic Overcapacity Alert Box
+            // Dynamic Overcapacity Alert Box
             const alertCard = document.getElementById('kpiAlertCard');
             const alertMsg = document.getElementById('kpiAlertMessage');
 
@@ -572,14 +663,173 @@
             }
         }
 
+        // Guardar reporte actual en LocalStorage
+        function saveCurrentReport() {
+            const date = document.getElementById('reportDate').value;
+            const time = document.getElementById('reportTime').value;
+            const responsible = document.getElementById('reportResponsible').value.trim();
+            const observations = document.getElementById('observations').value.trim();
+            const shiftInfo = getShiftByTime(time);
+
+            if (!date || !time) {
+                showToast("Por favor complete la fecha y la hora del reporte.", "fa-triangle-exclamation", "text-amber-400");
+                return;
+            }
+
+            const totalDot = servicesData.reduce((acc, curr) => acc + curr.dotacion, 0);
+            const totalPac = servicesData.reduce((acc, curr) => acc + curr.pacientes, 0);
+            const occupationPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : "0.00";
+
+            const reportRecord = {
+                id: 'REP_' + Date.now(),
+                date: date,
+                time: time,
+                shift: shiftInfo.shift,
+                responsible: responsible || 'Sin especificar',
+                observations: observations,
+                occupationPerc: occupationPerc,
+                servicesData: JSON.parse(JSON.stringify(servicesData)),
+                timestamp: new Date().toISOString()
+            };
+
+            const existingReports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            
+            // Reemplazar si coincide exactamente fecha y hora, o agregar nuevo
+            const existingIndex = existingReports.findIndex(r => r.date === date && r.time === time);
+            if (existingIndex >= 0) {
+                existingReports[existingIndex] = reportRecord;
+            } else {
+                existingReports.push(reportRecord);
+            }
+
+            // Ordenar por fecha y hora descendente
+            existingReports.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(existingReports));
+            showToast("Reporte guardado exitosamente.", "fa-circle-check", "text-emerald-400");
+        }
+
+        // Toast feedback
+        function showToast(message, iconClass, iconColorClass) {
+            const toast = document.getElementById('toastNotification');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+            toastIcon.className = `fa-solid ${iconClass} ${iconColorClass} text-lg`;
+
+            toast.classList.remove('hidden', 'translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+                setTimeout(() => toast.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        // Modales de Historial
+        function openHistoryModal() {
+            document.getElementById('historyModal').classList.remove('hidden');
+            renderHistoryList();
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        function clearHistoryFilter() {
+            document.getElementById('historyFilterDate').value = '';
+            renderHistoryList();
+        }
+
+        function renderHistoryList() {
+            const reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const filterDate = document.getElementById('historyFilterDate').value;
+            const tbody = document.getElementById('historyTableBody');
+            const emptyMsg = document.getElementById('emptyHistoryMsg');
+            const badge = document.getElementById('historyCountBadge');
+
+            tbody.innerHTML = '';
+
+            const filtered = reports.filter(r => !filterDate || r.date === filterDate);
+            badge.innerText = `${filtered.length} registro(s)`;
+
+            if (filtered.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            } else {
+                emptyMsg.classList.add('hidden');
+            }
+
+            filtered.forEach(rep => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition border-b border-gray-100";
+                
+                const isNight = rep.shift === 'NOCHE';
+                const shiftTag = isNight 
+                    ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800"><i class="fa-solid fa-moon mr-1"></i>Noche</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-sun mr-1"></i>Día</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-2 font-bold text-gray-800">${rep.date} <span class="text-gray-500 font-normal ml-1">(${rep.time})</span></td>
+                    <td class="p-2">${shiftTag}</td>
+                    <td class="p-2 text-gray-600">${rep.responsible}</td>
+                    <td class="p-2 text-center font-bold text-tealish-800">${rep.occupationPerc.replace('.', ',')}%</td>
+                    <td class="p-2 text-center space-x-1">
+                        <button onclick="loadReportFromHistory('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded text-[11px] font-semibold transition" title="Cargar este reporte">
+                            <i class="fa-solid fa-folder-open mr-1"></i> Ver
+                        </button>
+                        <button onclick="deleteReportFromHistory('${rep.id}')" class="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded text-[11px] font-semibold transition" title="Eliminar registro">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function loadReportFromHistory(id) {
+            const reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            const rep = reports.find(r => r.id === id);
+
+            if (!rep) return;
+
+            document.getElementById('reportDate').value = rep.date;
+            document.getElementById('reportTime').value = rep.time;
+            document.getElementById('reportResponsible').value = rep.responsible === 'Sin especificar' ? '' : rep.responsible;
+            document.getElementById('observations').value = rep.observations || '';
+            
+            servicesData = JSON.parse(JSON.stringify(rep.servicesData));
+
+            updateShiftBadge();
+            renderTable();
+            closeHistoryModal();
+            showToast("Reporte cargado en pantalla.", "fa-folder-open", "text-sky-400");
+        }
+
+        function deleteReportFromHistory(id) {
+            let reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            reports = reports.filter(r => r.id !== id);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+            renderHistoryList();
+            showToast("Reporte eliminado del historial.", "fa-trash", "text-rose-400");
+        }
+
         // Restablecer valores iniciales por defecto
         function resetDefaultValues() {
-            servicesData[0] = { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 };
-            servicesData[1] = { id: 'ped', name: 'PEDIATRÍA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 };
-            servicesData[2] = { id: 'cir', name: 'CIRUGÍA GENERAL', dotacion: 2, pacientes: 0, disponibles: 2, hombres: 0, mujeres: 0 };
-            servicesData[3] = { id: 'med', name: 'MEDICINA INTERNA', dotacion: 4, pacientes: 0, disponibles: 4, hombres: 0, mujeres: 0 };
-            
+            servicesData = JSON.parse(JSON.stringify(defaultServicesData));
             document.getElementById('observations').value = '';
+            document.getElementById('reportResponsible').value = '';
+            
+            const now = new Date();
+            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
+            
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('reportTime').value = `${hours}:${minutes}`;
+
+            updateShiftBadge();
             renderTable();
         }
 
@@ -587,26 +837,29 @@
         function exportToPDF() {
             const element = document.getElementById('report-content');
             const dateStr = document.getElementById('reportDate').value || 'reporte';
+            const timeStr = document.getElementById('reportTime').value || '';
             
             const opt = {
                 margin:       [0.3, 0.3, 0.3, 0.3],
-                filename:     `Reporte_Ocupacion_Camas_${dateStr}.pdf`,
+                filename:     `Reporte_Ocupacion_Camas_${dateStr}_${timeStr.replace(':','')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true, logging: false },
                 jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
             };
 
-            // Ocultar elementos marcados como no-print temporalmente si es necesario
             html2pdf().set(opt).from(element).save();
         }
 
         // Inicialización al cargar la página
         window.onload = function() {
-            // Asignar fecha actual por defecto en formato YYYY-MM-DD
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reportDate').value = today;
+            const now = new Date();
+            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
             
-            // Renderizar la tabla y cálculos iniciales
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('reportTime').value = `${hours}:${minutes}`;
+
+            updateShiftBadge();
             renderTable();
         };
     </script>
