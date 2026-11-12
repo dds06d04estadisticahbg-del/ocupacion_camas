@@ -172,13 +172,16 @@
     </div>
 
     <!-- Status Bar for DB Connection -->
-    <div class="max-w-7xl mx-auto mb-2 flex justify-between items-center text-[11px] font-semibold text-slate-500 no-print px-1">
+    <div class="max-w-7xl mx-auto mb-2 flex flex-wrap justify-between items-center text-[11px] font-semibold text-slate-500 no-print px-1 gap-2">
         <div class="flex items-center gap-1.5">
             <span id="dbStatusDot" class="w-2 h-2 rounded-full bg-amber-500 inline-block animate-pulse"></span>
-            <span id="dbStatusText">Conectando a Base de Datos IndexedDB...</span>
+            <span id="dbStatusText">Conectando a Base de Datos en la Nube...</span>
         </div>
-        <div id="lastSyncText" class="text-slate-400">
-            Última modificación: <span class="font-bold text-slate-600" id="lastSyncTime">Cargando...</span>
+        <div class="flex items-center gap-3">
+            <span id="userIdBadge" class="hidden bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded font-mono text-[10px]"></span>
+            <div id="lastSyncText" class="text-slate-400">
+                Última sincronización: <span class="font-bold text-slate-600" id="lastSyncTime">Cargando...</span>
+            </div>
         </div>
     </div>
 
@@ -198,9 +201,6 @@
             </button>
             <button onclick="openHistoryModal()" class="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow transition flex items-center">
                 <i class="fa-solid fa-database mr-2"></i> Consultar Base de Datos
-            </button>
-            <button onclick="resetDefaultValues()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg transition flex items-center">
-                <i class="fa-solid fa-rotate-left mr-2"></i> Restablecer
             </button>
             <button onclick="window.print()" class="px-3.5 py-2 bg-tealish-700 hover:bg-tealish-800 text-white text-xs font-semibold rounded-lg shadow transition flex items-center">
                 <i class="fa-solid fa-print mr-2"></i> Imprimir
@@ -242,6 +242,9 @@
                         <i class="fa-regular fa-clock text-tealish-700 text-sm"></i>
                         <span>Hora:</span>
                         <input type="time" id="reportTime" class="editable-input w-auto font-bold text-gray-800 border-gray-300 px-2 py-1 rounded text-xs" onchange="onMetadataChange()">
+                        <button type="button" onclick="syncSystemDateTime(true)" title="Actualizar a la fecha y hora actual del sistema" class="p-1.5 bg-tealish-700/10 hover:bg-tealish-700/20 text-tealish-800 rounded transition">
+                            <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                        </button>
                     </div>
 
                     <div class="flex items-center space-x-1.5 border-l border-gray-300 pl-3">
@@ -291,7 +294,7 @@
                             <td id="totalDotacion" class="py-2.5 px-1 border-r border-tealish-700 text-sm">15</td>
                             <td id="totalPacientes" class="py-2.5 px-1 border-r border-tealish-700 text-sm">0</td>
                             <td id="totalPorcentaje" class="py-2.5 px-1 border-r border-tealish-700 text-sm">0.00%</td>
-                            <td id="totalDisponibles" class="py-2.5 px-1 border-r border-tealish-700 text-sm text-center">15</td>
+                            <td id="totalDisponibles" class="py-2.5 px-1 border-r border-tealish-700 text-sm text-center font-bold">15</td>
                             <td id="totalHombres" class="py-2.5 px-1 border-r border-tealish-700 text-sm w-[9.5%] text-sky-200">0</td>
                             <td id="totalMujeres" class="py-2.5 px-1 text-sm w-[9.5%] text-purple-200">0</td>
                         </tr>
@@ -469,8 +472,12 @@
         </div>
     </div>
 
-    <!-- JavaScript Engine & Database Management -->
-    <script>
+    <!-- JavaScript Engine & Cloud Database Management (Firebase Firestore) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDocs, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // Default Services Initial Setup
         const defaultServicesData = [
             { id: 'mat', name: 'MATERNIDAD', dotacion: 5, pacientes: 0, disponibles: 5, hombres: 0, mujeres: 0 },
@@ -480,131 +487,201 @@
         ];
 
         let servicesData = JSON.parse(JSON.stringify(defaultServicesData));
-        const LOCAL_STORAGE_LAST_STATE = 'hospital_guamote_last_saved_state';
 
         // -------------------------------------------------------------
-        // DATABASE ENGINE: INDEXEDDB IMPLEMENTATION
+        // FIREBASE INITIALIZATION & AUTHENTICATION
         // -------------------------------------------------------------
-        const DB_NAME = 'HospitalGuamoteDB';
-        const DB_VERSION = 1;
-        const STORE_REPORTS = 'reports';
+        // Identificador unificado para que todos los usuarios compartan exactamente la misma ruta
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'hospital-guamote-v1';
+        
+        // Asegúrate de que el appId de Firebase tenga el formato "1:553315823070:web:xxxxxxxx" (copiado de Configuración del proyecto > Tus apps)
+        const fallbackFirebaseConfig = {
+            apiKey: "AIzaSyDS3v7qRlIwW6ON9i86jAzqDWamrw6-jlQ",
+            authDomain: "admisioneshbg.firebaseapp.com",
+            databaseURL: "https://admisioneshbg-default-rtdb.firebaseio.com",
+            projectId: "admisioneshbg",
+            storageBucket: "admisioneshbg.firebasestorage.app",
+            messagingSenderId: "553315823070",
+            appId: "1:553315823070:web:b5e55146de3886fd4dc14f",
+            measurementId: "G-JBC93FLY0R"
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : fallbackFirebaseConfig;
+
+        let app = null;
+        let auth = null;
         let db = null;
+        let currentUser = null;
+        let isLocalTyping = false;
+        let hasUnsavedLocalChanges = false;
+        let isInitialSyncDone = false;
 
-        // Initialize IndexedDB
-        function initDatabase() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
+        async function initCloudDatabase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-                request.onupgradeneeded = function(e) {
-                    const dbInstance = e.target.result;
-                    if (!dbInstance.objectStoreNames.contains(STORE_REPORTS)) {
-                        const store = dbInstance.createObjectStore(STORE_REPORTS, { keyPath: 'id' });
-                        store.createIndex('date', 'date', { unique: false });
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                    }
-                };
+                // Autenticación prioritaria con token personalizado o anónima
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = userCred.user;
+                } else {
+                    const userCred = await signInAnonymously(auth);
+                    currentUser = userCred.user;
+                }
 
-                request.onsuccess = function(e) {
-                    db = e.target.result;
+                if (currentUser) {
                     document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
-                    document.getElementById('dbStatusText').innerText = "Base de Datos Conectada (IndexedDB)";
-                    resolve(db);
-                };
+                    document.getElementById('dbStatusText').innerText = "Sincronización en Tiempo Real Activa";
+                    
+                    const userBadge = document.getElementById('userIdBadge');
+                    userBadge.innerText = `ID Sesión: ${currentUser.uid}`;
+                    userBadge.classList.remove('hidden');
 
-                request.onerror = function(e) {
-                    console.error("IndexedDB Error:", e.target.error);
+                    // Si el usuario ya ingresó datos antes de terminar la autenticación, guardarlos primero
+                    if (hasUnsavedLocalChanges) {
+                        const pendingPayload = getCurrentStatePayload();
+                        await dbSaveRecord(pendingPayload, false);
+                        hasUnsavedLocalChanges = false;
+                    }
+
+                    listenToLatestState();
+                }
+            } catch (error) {
+                console.error("Error de conexión en la nube:", error);
+                document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
+                document.getElementById('dbStatusText').innerText = `Error Auth: ${error.code || error.message}`;
+            }
+        }
+
+        // Rutas estrictas obligatorias
+        function getPublicCollectionRef(collectionName) {
+            return collection(db, 'artifacts', appId, 'public', 'data', collectionName);
+        }
+
+        function getPublicDocRef(collectionName, docId) {
+            return doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId);
+        }
+
+        // Escuchar en tiempo real el estado actual compartido entre todos los usuarios
+        function listenToLatestState() {
+            if (!currentUser || !db) return;
+
+            const currentDocRef = getPublicDocRef('hospital_status', 'latest_report');
+            onSnapshot(
+                currentDocRef,
+                (docSnap) => {
+                    document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
+                    document.getElementById('dbStatusText').innerText = "Sincronización en Tiempo Real Activa";
+
+                    if (docSnap.exists() && !isLocalTyping) {
+                        const data = docSnap.data();
+                        applyRecordToScreen(data);
+                        updateSyncLabel(data.timestamp);
+                    } else if (!docSnap.exists() && !isInitialSyncDone) {
+                        // Solo inicializar la nube si aún no existe el documento maestro, sin borrar lo que el usuario ya escribió
+                        const initialPayload = getCurrentStatePayload();
+                        dbSaveRecord(initialPayload, false);
+                    }
+                    isInitialSyncDone = true;
+                },
+                (error) => {
+                    console.error("Error escuchando cambios en tiempo real:", error);
                     document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
-                    document.getElementById('dbStatusText').innerText = "Error en IndexedDB (Modo Contingencia LocalStorage)";
-                    resolve(null);
-                };
-            });
+                    document.getElementById('dbStatusText').innerText = `Error Firestore (${error.code}): Verifica las Reglas de Seguridad`;
+                }
+            );
         }
 
-        // DB Operations: Insert / Update
-        function dbSaveRecord(record) {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    // Fallback to localStorage if IndexedDB is unavailable
-                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
-                    const idx = localDB.findIndex(r => r.id === record.id);
-                    if (idx >= 0) localDB[idx] = record;
-                    else localDB.push(record);
-                    localStorage.setItem('fallback_indexed_db', JSON.stringify(localDB));
-                    resolve(record);
-                    return;
+        // Guardar estado actual en tiempo real (estado activo + historial)
+        async function dbSaveRecord(record, saveToHistory = true) {
+            if (!currentUser || !db) {
+                hasUnsavedLocalChanges = true;
+                showToast("Conectando con la nube... se guardará al instante.", "fa-spinner fa-spin", "text-amber-400");
+                return null;
+            }
+
+            try {
+                // 1. Actualizar el documento en vivo para que todos los usuarios vean el último cambio
+                const latestDocRef = getPublicDocRef('hospital_status', 'latest_report');
+                await setDoc(latestDocRef, record);
+
+                // 2. Guardar en la colección histórica de reportes
+                if (saveToHistory) {
+                    const historyDocRef = getPublicDocRef('hospital_reports', record.id);
+                    await setDoc(historyDocRef, record);
                 }
-
-                const transaction = db.transaction([STORE_REPORTS], 'readwrite');
-                const store = transaction.objectStore(STORE_REPORTS);
-                const req = store.put(record);
-
-                req.onsuccess = () => resolve(record);
-                req.onerror = (e) => reject(e.target.error);
-            });
+                
+                document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-emerald-500 inline-block";
+                document.getElementById('dbStatusText').innerText = "Sincronización en Tiempo Real Activa";
+                return record;
+            } catch (error) {
+                console.error("Error al guardar en Firestore:", error);
+                document.getElementById('dbStatusDot').className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
+                document.getElementById('dbStatusText').innerText = `Error al guardar: ${error.code || error.message}`;
+                showToast(`Error al guardar (${error.code}): Revisa reglas de Firestore.`, "fa-triangle-exclamation", "text-rose-400");
+                return null;
+            }
         }
 
-        // DB Operations: Get All Records
-        function dbGetAllRecords() {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
-                    resolve(localDB);
-                    return;
-                }
+        // Obtener todos los registros históricos (sin consultas complejas, ordenado en memoria)
+        async function dbGetAllRecords() {
+            if (!currentUser || !db) return [];
 
-                const transaction = db.transaction([STORE_REPORTS], 'readonly');
-                const store = transaction.objectStore(STORE_REPORTS);
-                const req = store.getAll();
-
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = (e) => reject(e.target.error);
-            });
+            try {
+                const colRef = getPublicCollectionRef('hospital_reports');
+                const snapshot = await getDocs(colRef);
+                const records = [];
+                snapshot.forEach((docItem) => {
+                    records.push(docItem.data());
+                });
+                return records;
+            } catch (error) {
+                console.error("Error obteniendo historial:", error);
+                return [];
+            }
         }
 
-        // DB Operations: Delete Record
-        function dbDeleteRecord(id) {
-            return new Promise((resolve, reject) => {
-                if (!db) {
-                    let localDB = JSON.parse(localStorage.getItem('fallback_indexed_db') || '[]');
-                    localDB = localDB.filter(r => r.id !== id);
-                    localStorage.setItem('fallback_indexed_db', JSON.stringify(localDB));
-                    resolve(true);
-                    return;
-                }
+        // Eliminar registro histórico
+        async function dbDeleteRecord(id) {
+            if (!currentUser || !db) return false;
 
-                const transaction = db.transaction([STORE_REPORTS], 'readwrite');
-                const store = transaction.objectStore(STORE_REPORTS);
-                const req = store.delete(id);
-
-                req.onsuccess = () => resolve(true);
-                req.onerror = (e) => reject(e.target.error);
-            });
+            try {
+                const docRef = getPublicDocRef('hospital_reports', id);
+                await deleteDoc(docRef);
+                return true;
+            } catch (error) {
+                console.error("Error eliminando registro:", error);
+                return false;
+            }
         }
 
         // -------------------------------------------------------------
         // APPLICATION CORE LOGIC
         // -------------------------------------------------------------
 
-        // Render Main Data Table
         function renderTable() {
             const tbody = document.getElementById('servicesTableBody');
             tbody.innerHTML = '';
 
             servicesData.forEach((item, index) => {
+                // FÓRMULA AUTOMÁTICA: CAMAS DISPONIBLES = DOTACIÓN DE CAMAS - TOTAL PACIENTES
+                item.disponibles = item.dotacion - item.pacientes;
+
                 const rowClass = index % 2 === 0 ? 'table-row-even' : 'table-row-odd';
                 const percentage = item.dotacion > 0 ? ((item.pacientes / item.dotacion) * 100).toFixed(2) : '0.00';
                 const percentageNum = parseFloat(percentage);
                 
-                const isOverCap = percentageNum > 100;
+                const isOverCap = percentageNum > 100 || item.disponibles < 0;
                 const sumGender = item.hombres + item.mujeres;
-                const isGenderMismatch = sumGender > item.pacientes;
+                // Validación: Si TOTAL PACIENTES > 0, HOMBRES + MUJERES debe ser igual a TOTAL PACIENTES (o si no hay pacientes pero hay géneros registrados)
+                const isGenderMismatch = (item.pacientes > 0 && sumGender !== item.pacientes) || (item.pacientes === 0 && sumGender > 0);
 
-                const sumCapacity = item.disponibles + item.pacientes;
-                const isCapacityMismatch = sumCapacity > item.dotacion;
-
-                const hasError = isGenderMismatch || isCapacityMismatch;
+                const hasError = isGenderMismatch || isOverCap;
                 const genderErrorClass = isGenderMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
-                const capacityErrorClass = isCapacityMismatch ? '!border-red-500 !bg-red-100 !text-red-900 font-bold' : '';
                 
                 let progressBg = '#EAB308';
                 let textContrastClass = 'text-slate-900';
@@ -618,12 +695,17 @@
                 }
 
                 let availableIconHtml = '';
-                if (isCapacityMismatch) {
-                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-red-100 text-red-600 text-xs mr-1.5" title="Error de capacidad"><i class="fa-solid fa-triangle-exclamation"></i></span>`;
-                } else if (item.disponibles > 0) {
-                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 text-xs mr-1.5"><i class="fa-solid fa-check"></i></span>`;
+                let availableBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                
+                if (item.disponibles < 0) {
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-600 text-white text-[10px] mr-1 animate-bounce" title="¡Deficit / Sobrecupo!"><i class="fa-solid fa-exclamation"></i></span>`;
+                    availableBadgeClass = 'bg-red-500 text-white font-extrabold border-red-600 shadow-md animate-pulse';
+                } else if (item.disponibles === 0) {
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] mr-1" title="Capacidad Completa"><i class="fa-solid fa-minus"></i></span>`;
+                    availableBadgeClass = 'bg-amber-100 text-amber-900 font-bold border-amber-300';
                 } else {
-                    availableIconHtml = `<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-100 text-rose-500 text-xs mr-1.5"><i class="fa-solid fa-minus"></i></span>`;
+                    availableIconHtml = `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] mr-1"><i class="fa-solid fa-check"></i></span>`;
+                    availableBadgeClass = 'bg-emerald-100 text-emerald-800 font-bold border-emerald-300';
                 }
 
                 const tr = document.createElement('tr');
@@ -631,14 +713,14 @@
                 tr.innerHTML = `
                     <td class="py-2.5 px-3 text-left font-bold text-gray-700 border-r border-gray-300">
                         ${item.name}
-                        ${isGenderMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hombres + Mujeres ('+sumGender+') supera Pacientes ('+item.pacientes+')</div>' : ''}
-                        ${isCapacityMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Pacientes + Disponibles ('+sumCapacity+') supera Dotación ('+item.dotacion+')</div>' : ''}
+                        ${isGenderMismatch ? '<div class="text-[9px] text-red-600 font-semibold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Hombres + Mujeres ('+sumGender+') no coincide con Total Pacientes ('+item.pacientes+')</div>' : ''}
+                        ${item.disponibles < 0 ? '<div class="text-[9px] text-red-600 font-bold mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>¡ALERTA! Sobrecupo de '+Math.abs(item.disponibles)+' cama(s)</div>' : ''}
                     </td>
                     <td class="py-2.5 px-2 border-r border-gray-300 font-semibold text-gray-700 bg-gray-100/50">${item.dotacion}</td>
                     <td class="py-2.5 px-2 border-r border-gray-300">
                         <input type="number" min="0" value="${item.pacientes}" 
                             onchange="updateValue(${index}, 'pacientes', this.value)"
-                            class="editable-input text-gray-900 ${isCapacityMismatch ? '!border-red-500 !bg-red-50' : ''}" />
+                            class="editable-input text-gray-900 ${isOverCap ? '!border-red-500 !bg-red-50' : ''}" />
                     </td>
                     <td class="py-2.5 px-3 border-r border-gray-300">
                         <div class="progress-container">
@@ -648,12 +730,10 @@
                             </span>
                         </div>
                     </td>
-                    <td class="py-2.5 px-2 border-r border-gray-300">
-                        <div class="flex items-center justify-center font-bold text-gray-800">
+                    <td class="py-2.5 px-2 border-r border-gray-300 text-center">
+                        <div class="inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs border ${availableBadgeClass}">
                             ${availableIconHtml}
-                            <input type="number" min="0" value="${item.disponibles}" 
-                                onchange="updateValue(${index}, 'disponibles', this.value)"
-                                class="editable-input w-12 text-center text-gray-800 border-0 bg-transparent ${capacityErrorClass}" />
+                            <span>${item.disponibles}</span>
                         </div>
                     </td>
                     <td class="py-2.5 px-2 border-r border-gray-300">
@@ -673,22 +753,35 @@
             updateCalculations();
         }
 
-        // Live value update trigger
         function updateValue(index, field, value) {
             const val = parseInt(value) || 0;
             servicesData[index][field] = val < 0 ? 0 : val;
+            hasUnsavedLocalChanges = true;
+
+            const item = servicesData[index];
+            const sumGender = item.hombres + item.mujeres;
+
+            if (field === 'pacientes') {
+                item.disponibles = item.dotacion - item.pacientes;
+                if (item.disponibles < 0) {
+                    showToast(`⚠️ ALERTA: ${item.name} excede la capacidad por ${Math.abs(item.disponibles)} cama(s).`, "fa-triangle-exclamation", "text-rose-400");
+                } else if (item.pacientes > 0 && sumGender !== item.pacientes) {
+                    showToast(`⚠️ ATENCIÓN: En ${item.name}, Hombres + Mujeres (${sumGender}) difiere del Total Pacientes (${item.pacientes}).`, "fa-triangle-exclamation", "text-amber-400");
+                }
+            } else if ((field === 'hombres' || field === 'mujeres') && item.pacientes > 0 && sumGender !== item.pacientes) {
+                showToast(`⚠️ ATENCIÓN: En ${item.name}, Hombres + Mujeres (${sumGender}) debe ser igual a Total Pacientes (${item.pacientes}).`, "fa-triangle-exclamation", "text-amber-400");
+            }
+
             renderTable();
             autoSaveDraft();
         }
 
-        // Metadata change trigger
         function onMetadataChange() {
             updateShiftBadge();
             updateCalculations();
             autoSaveDraft();
         }
 
-        // Shift determination logic
         function getShiftByTime(timeString) {
             if (!timeString) return { shift: 'DÍA', icon: 'fa-sun', colorClass: 'bg-amber-100 text-amber-800 border-amber-300' };
             const parts = timeString.split(':');
@@ -711,36 +804,49 @@
             textElem.innerText = `TURNO ${shiftInfo.shift}`;
         }
 
-        // Calculate Totals and KPIs
         function updateCalculations() {
             let totalDot = 0, totalPac = 0, totalDisp = 0, totalH = 0, totalM = 0;
-            const overcapacityAlerts = [];
+            const serviceAlerts = [];
 
             servicesData.forEach(item => {
+                item.disponibles = item.dotacion - item.pacientes;
                 totalDot += item.dotacion;
                 totalPac += item.pacientes;
                 totalDisp += item.disponibles;
                 totalH += item.hombres;
                 totalM += item.mujeres;
 
-                if (item.dotacion > 0 && item.pacientes > item.dotacion) {
+                const formattedName = item.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+                const sumGender = item.hombres + item.mujeres;
+
+                if (item.disponibles < 0) {
                     const perc = ((item.pacientes / item.dotacion) * 100).toFixed(2).replace('.', ',');
-                    const formattedName = item.name.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-                    overcapacityAlerts.push(`${formattedName} reporta ${perc}% de ocupación (${item.pacientes} pacientes para ${item.dotacion} camas).`);
+                    serviceAlerts.push(`⚠️ <b>${formattedName}:</b> Sobrecupo de ${Math.abs(item.disponibles)} cama(s) (${perc}% ocupación).`);
+                }
+
+                if ((item.pacientes > 0 && sumGender !== item.pacientes) || (item.pacientes === 0 && sumGender > 0)) {
+                    serviceAlerts.push(`⚠️ <b>${formattedName}:</b> Hombres + Mujeres (${sumGender}) no coincide con Total Pacientes (${item.pacientes}).`);
                 }
             });
 
             const totalPerc = totalDot > 0 ? ((totalPac / totalDot) * 100).toFixed(2) : '0.00';
             const totalPercFormatted = totalPerc.replace('.', ',');
-            const freePercNum = totalDot > 0 ? Math.max(0, ((totalDisp / totalDot) * 100)).toFixed(2) : '0.00';
+            const freePercNum = totalDot > 0 ? ((totalDisp / totalDot) * 100).toFixed(2) : '0.00';
             const freePercFormatted = freePercNum.replace('.', ',');
 
             document.getElementById('totalDotacion').innerText = totalDot;
             document.getElementById('totalPacientes').innerText = totalPac;
             document.getElementById('totalPorcentaje').innerText = `${totalPercFormatted}%`;
-            document.getElementById('totalDisponibles').innerText = totalDisp;
             document.getElementById('totalHombres').innerText = totalH;
             document.getElementById('totalMujeres').innerText = totalM;
+            
+            const totalDispElem = document.getElementById('totalDisponibles');
+            totalDispElem.innerText = totalDisp;
+            if (totalDisp < 0) {
+                totalDispElem.className = "py-2.5 px-1 border-r border-tealish-700 text-sm text-center font-black bg-rose-600 text-white animate-pulse";
+            } else {
+                totalDispElem.className = "py-2.5 px-1 border-r border-tealish-700 text-sm text-center font-bold text-emerald-200";
+            }
 
             const percCell = document.getElementById('totalPorcentaje');
             if (parseFloat(totalPerc) > 100) percCell.classList.add('bg-red-700', 'text-white');
@@ -748,16 +854,24 @@
 
             document.getElementById('kpiOcupacionGeneral').innerText = `${totalPercFormatted}%`;
             document.getElementById('kpiPorcentajeLibre').innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${freePercFormatted}% Libre`;
-            document.getElementById('kpiCamasLibres').innerText = totalDisp;
+            
+            const kpiLibresElem = document.getElementById('kpiCamasLibres');
+            kpiLibresElem.innerText = totalDisp;
+            if (totalDisp < 0) {
+                kpiLibresElem.className = "text-2xl font-black text-rose-600 tracking-tight animate-pulse";
+            } else {
+                kpiLibresElem.className = "text-2xl font-black text-slate-800 tracking-tight";
+            }
+
             document.getElementById('kpiCamasOcupadas').innerText = totalPac;
             document.getElementById('kpiTotalDotacionSubtext').innerText = `de ${totalDot} dotadas`;
 
             const alertCard = document.getElementById('kpiAlertCard');
             const alertMsg = document.getElementById('kpiAlertMessage');
 
-            if (overcapacityAlerts.length > 0) {
-                alertCard.className = "p-3.5 rounded-xl border-l-4 border-red-500 bg-gradient-to-r from-red-50/90 to-red-50/40 text-red-950 shadow-sm transition-all relative overflow-hidden block";
-                alertMsg.innerHTML = overcapacityAlerts.join('<br class="my-1"/>');
+            if (serviceAlerts.length > 0) {
+                alertCard.className = "p-3.5 rounded-xl border-l-4 border-red-500 bg-gradient-to-r from-red-50/90 to-red-50/40 text-red-950 shadow-sm transition-all relative overflow-hidden block animate-pulse";
+                alertMsg.innerHTML = serviceAlerts.join('<br class="my-1"/>');
             } else {
                 alertCard.className = "p-3.5 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50/90 to-emerald-50/40 text-emerald-950 shadow-sm transition-all relative overflow-hidden block";
                 alertMsg.innerHTML = '<span class="text-emerald-700 font-semibold"><i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> Todos los servicios operan dentro del límite de capacidad.</span>';
@@ -765,7 +879,7 @@
         }
 
         // -------------------------------------------------------------
-        // AUTOMATIC SAVING & STATE PERSISTENCE
+        // CLOUD SYNC & STATE MANAGEMENT
         // -------------------------------------------------------------
 
         function getCurrentStatePayload() {
@@ -788,20 +902,25 @@
                 observations: observations,
                 occupationPerc: occupationPerc,
                 servicesData: JSON.parse(JSON.stringify(servicesData)),
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                updatedBy: currentUser ? currentUser.uid : 'anon'
             };
         }
 
-        // Auto Save modified state immediately into memory and database
         let autoSaveDebounce = null;
         function autoSaveDraft() {
+            isLocalTyping = true;
+            hasUnsavedLocalChanges = true;
             clearTimeout(autoSaveDebounce);
             autoSaveDebounce = setTimeout(async () => {
                 const payload = getCurrentStatePayload();
-                localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(payload));
-                await dbSaveRecord(payload);
-                updateSyncLabel(payload.timestamp);
-            }, 300);
+                const res = await dbSaveRecord(payload, false);
+                if (res) {
+                    hasUnsavedLocalChanges = false;
+                    updateSyncLabel(payload.timestamp);
+                }
+                setTimeout(() => { isLocalTyping = false; }, 800);
+            }, 400);
         }
 
         function updateSyncLabel(isoString) {
@@ -811,51 +930,39 @@
             document.getElementById('lastSyncTime').innerText = formatted;
         }
 
-        // Manual Save Trigger
         async function saveCurrentReport(showNotification = true) {
-            const payload = getCurrentStatePayload();
-            if (!payload.date || !payload.time) {
-                showToast("Complete fecha y hora para guardar.", "fa-triangle-exclamation", "text-amber-400");
+            const date = document.getElementById('reportDate').value;
+            const time = document.getElementById('reportTime').value;
+
+            if (!date || !time) {
+                showToast("Por favor complete la fecha y la hora del reporte.", "fa-triangle-exclamation", "text-amber-400");
                 return;
             }
 
-            localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(payload));
-            await dbSaveRecord(payload);
-            updateSyncLabel(payload.timestamp);
+            if (!currentUser || !db) {
+                hasUnsavedLocalChanges = true;
+                showToast("Conectando a la base de datos... reintentando guardado.", "fa-spinner fa-spin", "text-amber-400");
+                await initCloudDatabase();
+                if (!currentUser || !db) return;
+            }
 
-            if (showNotification) {
-                showToast("Registro guardado exitosamente en Base de Datos.", "fa-circle-check", "text-emerald-400");
+            const payload = getCurrentStatePayload();
+            const savedRecord = await dbSaveRecord(payload, true);
+            if (savedRecord) {
+                hasUnsavedLocalChanges = false;
+                updateSyncLabel(savedRecord.timestamp);
+                if (showNotification) {
+                    showToast("Registro guardado en la Base de Datos en la Nube.", "fa-cloud-arrow-up", "text-emerald-400");
+                }
             }
         }
 
-        // Load the last saved state when opening application
-        async function loadLastSavedState() {
-            // First check LocalStorage for instant state recovery
-            const savedStateStr = localStorage.getItem(LOCAL_STORAGE_LAST_STATE);
-            if (savedStateStr) {
-                try {
-                    const savedState = JSON.parse(savedStateStr);
-                    applyRecordToScreen(savedState);
-                    updateSyncLabel(savedState.timestamp);
-                    return;
-                } catch(e) { console.error(e); }
-            }
-
-            // Secondary check: query IndexedDB for newest record
-            const allRecords = await dbGetAllRecords();
-            if (allRecords.length > 0) {
-                allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                applyRecordToScreen(allRecords[0]);
-                updateSyncLabel(allRecords[0].timestamp);
-            } else {
-                resetDefaultValues();
-            }
-        }
-
-        function applyRecordToScreen(record) {
+        function applyRecordToScreen(record, keepSystemDateTime = true) {
             if (!record) return;
-            document.getElementById('reportDate').value = record.date || new Date().toISOString().split('T')[0];
-            document.getElementById('reportTime').value = record.time || '08:00';
+            if (!keepSystemDateTime) {
+                document.getElementById('reportDate').value = record.date || getLocalSystemDate();
+                document.getElementById('reportTime').value = record.time || getLocalSystemTime();
+            }
             document.getElementById('reportResponsible').value = record.responsible === 'Sin especificar' ? '' : (record.responsible || '');
             document.getElementById('observations').value = record.observations || '';
             
@@ -867,8 +974,33 @@
             renderTable();
         }
 
+        function getLocalSystemDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getLocalSystemTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function syncSystemDateTime(triggerSave = false) {
+            document.getElementById('reportDate').value = getLocalSystemDate();
+            document.getElementById('reportTime').value = getLocalSystemTime();
+            updateShiftBadge();
+            if (triggerSave) {
+                autoSaveDraft();
+                showToast("Fecha y hora actualizadas con el sistema.", "fa-clock", "text-teal-300");
+            }
+        }
+
         // -------------------------------------------------------------
-        // DATABASE HISTORICAL CONSULTATION MODAL
+        // HISTORICAL CONSULTATION MODAL
         // -------------------------------------------------------------
 
         async function openHistoryModal() {
@@ -940,17 +1072,17 @@
             const rep = reports.find(r => r.id === id);
 
             if (!rep) return;
-            applyRecordToScreen(rep);
-            localStorage.setItem(LOCAL_STORAGE_LAST_STATE, JSON.stringify(rep));
+            applyRecordToScreen(rep, false);
+            await dbSaveRecord(rep, false);
             updateSyncLabel(rep.timestamp);
             closeHistoryModal();
-            showToast("Registro cargado en la tabla principal.", "fa-folder-open", "text-sky-400");
+            showToast("Registro cargado en pantalla.", "fa-folder-open", "text-sky-400");
         }
 
         async function deleteReportFromDB(id) {
             await dbDeleteRecord(id);
             await renderHistoryList();
-            showToast("Registro eliminado de la Base de Datos.", "fa-trash", "text-rose-400");
+            showToast("Registro eliminado de la nube.", "fa-trash", "text-rose-400");
         }
 
         async function exportDBToJson() {
@@ -958,13 +1090,12 @@
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reports, null, 2));
             const downloadAnchor = document.createElement('a');
             downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `Respaldos_Hospital_Guamote_${new Date().toISOString().split('T')[0]}.json`);
+            downloadAnchor.setAttribute("download", `Respaldos_Nube_Hospital_Guamote_${new Date().toISOString().split('T')[0]}.json`);
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             downloadAnchor.remove();
         }
 
-        // Toast Feedback helper
         function showToast(message, iconClass, iconColorClass) {
             const toast = document.getElementById('toastNotification');
             const toastMsg = document.getElementById('toastMessage');
@@ -983,25 +1114,6 @@
             }, 3000);
         }
 
-        // Reset to initial values
-        function resetDefaultValues() {
-            servicesData = JSON.parse(JSON.stringify(defaultServicesData));
-            document.getElementById('observations').value = '';
-            document.getElementById('reportResponsible').value = '';
-            
-            const now = new Date();
-            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
-            
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('reportTime').value = `${hours}:${minutes}`;
-
-            updateShiftBadge();
-            renderTable();
-            autoSaveDraft();
-        }
-
-        // PDF Export
         function exportToPDF() {
             const element = document.getElementById('report-content');
             const dateStr = document.getElementById('reportDate').value || 'reporte';
@@ -1018,10 +1130,29 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // Application Initialization
+        // Exponer funciones al ámbito global para eventos inline en HTML
+        window.updateValue = updateValue;
+        window.onMetadataChange = onMetadataChange;
+        window.autoSaveDraft = autoSaveDraft;
+        window.saveCurrentReport = saveCurrentReport;
+        window.openHistoryModal = openHistoryModal;
+        window.closeHistoryModal = closeHistoryModal;
+        window.clearHistoryFilter = clearHistoryFilter;
+        window.renderHistoryList = renderHistoryList;
+        window.loadReportFromDB = loadReportFromDB;
+        window.deleteReportFromDB = deleteReportFromDB;
+        window.exportDBToJson = exportDBToJson;
+        window.exportToPDF = exportToPDF;
+        window.syncSystemDateTime = syncSystemDateTime;
+
+        // Inicialización al cargar
         window.onload = async function() {
-            await initDatabase();
-            await loadLastSavedState();
+            // Iniciar automáticamente con la fecha y hora local del sistema operativo
+            syncSystemDateTime(false);
+            renderTable();
+
+            // Conectar y sincronizar con la nube en segundo plano
+            await initCloudDatabase();
         };
     </script>
 </body>
